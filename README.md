@@ -183,11 +183,12 @@ matches (id PK, user_a_id → users, user_b_id → users, created_at,
 
 ## Deploying (Vercel + Turso)
 
-```bash
-turso db create coy-discover && turso db show coy-discover --url && turso db tokens create coy-discover
-DATABASE_URL=libsql://… DATABASE_AUTH_TOKEN=… pnpm db:setup   # migrate + seed the hosted DB
-```
-On Vercel, set `DATABASE_URL`, `DATABASE_AUTH_TOKEN` and, optionally, `DEMO_RESET=true`.
+A SQLite *file* doesn't persist on serverless hosts, so the hosted demo uses Turso (hosted SQLite, same libSQL code):
+
+1. Import the GitHub repo in Vercel. The framework is detected as Next.js.
+2. In the Vercel project, open **Storage → Marketplace → Turso** and create a database. This injects `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`, which the app reads automatically. `DATABASE_URL` and `DATABASE_AUTH_TOKEN` also work.
+3. Optionally, set `DEMO_RESET=true` so reviewers get the **Reset demo** button.
+4. Redeploy. The `vercel-build` script runs migrations and the idempotent seed against Turso before `next build`.
 
 ## Known limitations
 
