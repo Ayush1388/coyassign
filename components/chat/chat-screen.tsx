@@ -202,7 +202,8 @@ export function ChatScreen({ matchId }: { matchId: string }) {
                 first={firstOfGroup}
                 last={lastOfGroup}
                 sendState={isPending ? m.sendState : undefined}
-                showSeenLabel={!isPending && m.id === lastMineId && (m as MessageDTO).status === "seen" && !pending.length}
+                showStatusLabel={!isPending && m.id === lastMineId && !pending.length}
+                seenAt={!isPending ? (m as MessageDTO).seenAt : undefined}
                 onRetry={isPending ? () => void send(m.body, m.id) : undefined}
                 avatar={!m.fromMe && lastOfGroup ? p?.photoUrl ?? null : undefined}
                 name={p?.name ?? ""}
@@ -379,7 +380,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 /** Read receipt: 🕓 sending · ✓ delivered · ✓✓ (blue) seen. */
 function Receipt({ state }: { state: "sending" | "failed" | "delivered" | "seen" }) {
   if (state === "sending") return <Clock3 className="size-3.5 text-muted" aria-label="Sending" />;
-  if (state === "seen") return <CheckCheck className="size-4 text-[#2f8cff]" strokeWidth={2.5} aria-label="Seen" data-testid="tick-seen" />;
+  if (state === "seen") return <CheckCheck className="size-4 text-[#1f7aec]" strokeWidth={2.5} aria-label="Seen" data-testid="tick-seen" />;
   if (state === "delivered") return <Check className="size-4 text-muted" strokeWidth={2.5} aria-label="Delivered" data-testid="tick-delivered" />;
   return null;
 }
@@ -389,7 +390,8 @@ function Bubble({
   first,
   last,
   sendState,
-  showSeenLabel,
+  showStatusLabel,
+  seenAt,
   onRetry,
   avatar,
   name,
@@ -398,7 +400,9 @@ function Bubble({
   first: boolean;
   last: boolean;
   sendState?: "sending" | "failed";
-  showSeenLabel: boolean;
+  /** Spell the status out ("Seen 8:25 pm" / "Delivered") under my most recent message. */
+  showStatusLabel: boolean;
+  seenAt?: string;
   onRetry?: () => void;
   avatar?: string | null;
   name: string;
@@ -426,7 +430,7 @@ function Bubble({
         <span
           className={`px-3.5 py-2 text-[15.5px] leading-snug break-words whitespace-pre-wrap ${
             m.fromMe
-              ? `${mineShape} bg-gradient-to-br from-[#d81e63] to-[#b5164f] text-white shadow-[0_4px_12px_-6px_rgba(216,30,99,0.7)]`
+              ? `${mineShape} bubble-mine`
               : `${theirShape} bg-surface text-ink shadow-[0_2px_8px_-4px_rgba(21,18,29,0.28)]`
           } ${sendState === "sending" ? "opacity-75" : ""}`}
         >
@@ -442,7 +446,12 @@ function Bubble({
               <>
                 {formatTime(m.createdAt)}
                 {m.fromMe && <Receipt state={state} />}
-                {showSeenLabel && <span className="text-[#2f8cff]">Seen</span>}
+                {showStatusLabel && state === "seen" && (
+                  <span data-testid="seen-label" className="font-bold text-[#1a63cf]">
+                    Seen{seenAt ? ` ${formatTime(seenAt)}` : ""}
+                  </span>
+                )}
+                {showStatusLabel && state === "delivered" && <span data-testid="delivered-label">Delivered</span>}
               </>
             )}
           </span>

@@ -43,7 +43,11 @@ const toDTO = (
     fromMe,
     createdAt: m.deliverAt,
     // Receipts are only shown on your own messages.
-    ...(fromMe ? { status: m.seenAt && m.seenAt <= nowIso ? ("seen" as const) : ("delivered" as const) } : {}),
+    ...(fromMe
+      ? m.seenAt && m.seenAt <= nowIso
+        ? { status: "seen" as const, seenAt: m.seenAt }
+        : { status: "delivered" as const }
+      : {}),
   };
 };
 

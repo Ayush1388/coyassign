@@ -7,7 +7,7 @@ A swipe-based **Discover** tab built as a standalone app alongside a placeholder
 
 ![Discover, match, matches and empty state](docs/screenshots/overview.png)
 
-<sub>Left to right: Discover · full profile · filters · "It's a match!" · Matches · Chats · Notifications</sub>
+<sub>Left to right: Discover · full profile · filters · "It's a match!" · chat · Matches · Chats · Notifications</sub>
 
 ---
 
@@ -27,7 +27,7 @@ Requires Node 20.12+ (tested on Node 24) and pnpm. No `.env` is needed locally; 
 | `pnpm db:setup` | Apply migrations and seed (safe to re-run; it never deletes your swipes) |
 | `pnpm db:reset` | Clear *your* swipes and matches to replay the demo (the empty state also has a **Reset demo** button) |
 | `pnpm test` | 84 unit, API-integration and privacy tests (Vitest) |
-| `pnpm test:e2e` | 46 Playwright tests on mobile (Pixel 7) and desktop (builds and starts the app on port 3200 with its own DB) |
+| `pnpm test:e2e` | 48 Playwright tests on mobile (Pixel 7) and desktop (builds and starts the app on port 3200 with its own DB) |
 | `pnpm typecheck` / `pnpm build` | Type check / production build |
 
 **Demo tip:** 12 of the 32 seeded profiles have already liked you. You can't tell which (that's the point), but the third card is one of them.
@@ -82,6 +82,10 @@ The Discover layout follows a supplied mockup: logo with icon buttons, pill sect
 | Dark background | Coy's white background | As requested. The card keeps a dark scrim so text over photos stays above 4.5:1 contrast. |
 
 **Notifications vs Chats:** the bell opens its own panel that only says what needs you ("You matched with Sana", "Maya texted you") and clears once you reply. Chats is where conversations live, with **Messages on top and New matches below**.
+
+**Read receipts:** a sent message shows 🕓 while sending, ✓ when delivered, and a blue ✓✓ with **"Seen 8:32 pm"** once they've read it.
+
+**Robust colours:** every pink surface sets a solid background colour first and the gradient on top, using plain gradients rather than newer CSS (`in oklab`, `color-mix`). If a browser ever ignores a gradient, white text still sits on pink instead of vanishing. A test checks this for chat bubbles and pop-ups.
 
 **Colour rule:** pink fills are always one deep pink (`#d81e63`) with **white** text (4.9:1). There is no dark text on pink anywhere, and shared interests are marked with a pink heart rather than a pink fill.
 

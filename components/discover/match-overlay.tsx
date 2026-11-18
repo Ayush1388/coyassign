@@ -35,13 +35,17 @@ export function MatchOverlay({ match, onClose }: { match: MatchDTO; onClose: () 
       aria-modal="true"
       aria-labelledby="match-title"
       data-testid="match-overlay"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-5 backdrop-blur-[3px]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-5 backdrop-blur-[3px]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: 0.15 } }}
     >
       <motion.div
-        className="sticker-hero relative w-full max-w-[440px] bg-news! px-6 pt-7 pb-6"
+        className="relative w-full max-w-[440px] rounded-[28px] px-6 pt-7 pb-6 text-white shadow-[0_30px_60px_-20px_rgba(0,0,0,0.7)]"
+        style={{
+          backgroundColor: "#15121d",
+          backgroundImage: "radial-gradient(120% 70% at 50% 0%, rgba(216,30,99,0.38), rgba(21,18,29,0) 62%)",
+        }}
         initial={reduce ? false : { scale: 0.88, y: 24 }}
         animate={{ scale: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 340, damping: 24 }}
@@ -51,22 +55,22 @@ export function MatchOverlay({ match, onClose }: { match: MatchDTO; onClose: () 
             <motion.span
               key={i}
               aria-hidden
-              className="pointer-events-none absolute top-[128px] left-1/2 text-accent"
+              className="pointer-events-none absolute top-[128px] left-1/2 text-[#ff6aa0]"
               initial={{ x: 0, y: 0, scale: 0, opacity: 1 }}
               animate={{ x: b.x, y: b.y, scale: 1, opacity: 0 }}
               transition={{ duration: 1.1, delay: 0.15 + b.d, ease: "easeOut" }}
             >
-              <Heart className="size-4 fill-current stroke-ink" strokeWidth={1.5} />
+              <Heart className="size-4 fill-current" strokeWidth={0} />
             </motion.span>
           ))}
 
-        <p className="micro-label inline-flex items-center gap-1.5 rounded-full border-(length:--bw) border-line bg-surface px-3 py-1">
+        <p className="micro-label inline-flex items-center gap-1.5 rounded-full bg-white/12 px-3 py-1 text-white">
           <Lock className="size-3" aria-hidden /> Mutual
         </p>
 
         <div className="relative mx-auto my-5 flex h-[132px] w-[236px] items-center justify-center">
           <motion.div
-            className="absolute left-0 size-[120px] -rotate-6 overflow-hidden rounded-[20px] border-(length:--bw) border-line bg-accent-strong shadow-(--pop)"
+            className="absolute left-0 size-[120px] -rotate-6 overflow-hidden rounded-[22px] bg-accent-strong shadow-[0_14px_28px_-12px_rgba(0,0,0,0.6)]"
             initial={reduce ? false : { x: -40, rotate: -20, opacity: 0 }}
             animate={{ x: 0, rotate: -6, opacity: 1 }}
             transition={{ type: "spring", stiffness: 260, damping: 18, delay: 0.05 }}
@@ -76,7 +80,7 @@ export function MatchOverlay({ match, onClose }: { match: MatchDTO; onClose: () 
             </div>
           </motion.div>
           <motion.div
-            className="absolute right-0 size-[120px] rotate-6 overflow-hidden rounded-[20px] border-(length:--bw) border-line shadow-(--pop)"
+            className="absolute right-0 size-[120px] rotate-6 overflow-hidden rounded-[22px] shadow-[0_14px_28px_-12px_rgba(0,0,0,0.6)]"
             initial={reduce ? false : { x: 40, rotate: 20, opacity: 0 }}
             animate={{ x: 0, rotate: 6, opacity: 1 }}
             transition={{ type: "spring", stiffness: 260, damping: 18, delay: 0.1 }}
@@ -84,26 +88,26 @@ export function MatchOverlay({ match, onClose }: { match: MatchDTO; onClose: () 
             <Photo src={match.profile.photoUrl} name={match.profile.name} className="size-full" eager />
           </motion.div>
           <motion.div
-            className="relative z-10 flex size-12 items-center justify-center rounded-full border-(length:--bw) border-line bg-surface"
+            className="relative z-10 flex size-12 items-center justify-center rounded-full bg-white shadow-[0_6px_16px_-6px_rgba(0,0,0,0.6)]"
             initial={reduce ? false : { scale: 0 }}
             animate={{ scale: [0, 1.25, 1] }}
             transition={{ delay: 0.3, duration: 0.4 }}
           >
-            <Heart className="size-6 fill-accent text-ink" strokeWidth={1.75} aria-hidden />
+            <Heart className="size-6 fill-accent-strong text-accent-strong" aria-hidden />
           </motion.div>
         </div>
 
-        <h2 id="match-title" className="display text-[44px]">
+        <h2 id="match-title" className="display text-[44px] text-white">
           It&apos;s a match!
         </h2>
-        <p className="mt-2 text-[19px] leading-[1.45] text-ink/75">
-          You and <strong className="font-bold text-ink">{match.profile.name}</strong> liked each other. Only the two of
+        <p className="mt-2 text-[18px] leading-[1.45] text-white/85">
+          You and <strong className="font-bold text-white">{match.profile.name}</strong> liked each other. Only the two of
           you know.
         </p>
 
         {match.sharedInterests.length > 0 && (
-          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border-(length:--bw) border-line bg-surface px-3 py-1 text-[14px] font-bold">
-            <Heart className="size-3.5 fill-accent text-ink" aria-hidden />
+          <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white/12 px-3 py-1.5 text-[14px] font-bold text-white">
+            <Heart className="size-3.5 fill-[#ff6aa0] text-[#ff6aa0]" aria-hidden />
             You both like {listInterests(match.sharedInterests)}
           </p>
         )}
@@ -117,7 +121,11 @@ export function MatchOverlay({ match, onClose }: { match: MatchDTO; onClose: () 
           >
             <MessageCircle className="size-5" aria-hidden /> Send a message
           </Link>
-          <button type="button" onClick={onClose} className="btn-secondary pressable focus-ring w-full">
+          <button
+            type="button"
+            onClick={onClose}
+            className="focus-ring inline-flex min-h-[54px] w-full items-center justify-center rounded-full bg-white/12 text-[17px] font-bold text-white transition-colors hover:bg-white/20 active:scale-[0.98]"
+          >
             Keep swiping
           </button>
         </div>

@@ -281,8 +281,8 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
                   initial={{ opacity: 0, y: -10, scale: 0.96 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -8, transition: { duration: 0.12 } }}
-                  className={`absolute top-14 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border-(length:--bw) border-line px-4 py-2 text-[14px] font-bold whitespace-nowrap shadow-(--pop) ${
-                    toast.tone === "like" ? "bg-accent-strong text-white" : "bg-surface text-ink"
+                  className={`absolute top-14 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full px-4 py-2.5 text-[14px] font-bold whitespace-nowrap text-white shadow-[0_10px_24px_-10px_rgba(0,0,0,0.55)] ${
+                    toast.tone === "like" ? "bg-accent-strong" : "bg-ink"
                   }`}
                   role={toast.tone === "error" ? "alert" : "status"}
                   data-testid="toast"
@@ -297,7 +297,7 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
                         setToast(null);
                         toast.retry?.();
                       }}
-                      className="focus-ring -my-2 ml-1 min-h-11 px-1 font-extrabold text-accent-strong underline underline-offset-2"
+                      className="focus-ring -my-2 ml-1 min-h-11 px-1 font-extrabold text-[#ff9cc0] underline underline-offset-2"
                     >
                       Retry
                     </button>

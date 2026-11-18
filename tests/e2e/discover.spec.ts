@@ -120,6 +120,8 @@ test("mutual like shows It's a match and appears in Matches", async ({ page }) =
   }
   expect(matchedName).not.toBeNull();
   await expect(overlay(page).getByRole("heading", { name: "It's a match!" })).toBeVisible();
+  // Pop-up text is white (on a dark card), never black.
+  await expect(overlay(page).getByRole("heading", { name: "It's a match!" })).toHaveCSS("color", "rgb(255, 255, 255)");
   await expect(overlay(page)).toContainText(matchedName!);
   await expect(page.getByTestId("match-count")).toHaveText("1");
 
@@ -350,8 +352,11 @@ test("chat shows a single tick when delivered and a blue double tick when seen",
   const mine = page.getByTestId("msg-mine").first();
   await expect(mine).toHaveAttribute("data-status", "delivered");
   await expect(mine.getByTestId("tick-delivered")).toBeVisible();
+  await expect(page.getByTestId("delivered-label")).toHaveText("Delivered");
   await expect(mine).toHaveAttribute("data-status", "seen", { timeout: 10_000 });
   await expect(mine.getByTestId("tick-seen")).toBeVisible();
+  // "Seen" is spelled out with the time they saw it.
+  await expect(page.getByTestId("seen-label")).toHaveText(/^Seen \d{1,2}:\d{2}\s?(am|pm)$/i);
   await expect(page.getByTestId("msg-theirs").first()).toBeVisible({ timeout: 10_000 });
 });
 
@@ -426,4 +431,28 @@ test("Chats lists Messages first, then New matches below", async ({ page }) => {
   const messagesY = (await page.getByTestId("conversations").boundingBox())!.y;
   const newMatchesY = (await page.getByTestId("new-matches").boundingBox())!.y;
   expect(messagesY).toBeLessThan(newMatchesY);
+});
+
+test("white text always has a solid pink background behind it (bubbles and the like pop-up)", async ({ page }) => {
+  // The "You liked ..." pop-up
+  await openDiscover(page);
+  await page.getByTestId("like-button").click();
+  const toast = page.getByTestId("toast").or(overlay(page));
+  await expect(toast).toBeVisible();
+  if (await page.getByTestId("toast").isVisible()) {
+    await expect(page.getByTestId("toast")).toHaveCSS("color", "rgb(255, 255, 255)");
+    await expect(page.getByTestId("toast")).toHaveCSS("background-color", "rgb(216, 30, 99)");
+  }
+
+  // My chat bubble: solid pink colour under the gradient, so it can never turn into white-on-grey.
+  for (const p of (await apiFeed(page)).slice(0, 10))
+    await page.request.post("/api/swipe", { data: { profileId: p.id, action: "LIKE" } });
+  const [m] = (await (await page.request.get("/api/matches")).json()).matches as { id: string }[];
+  await page.goto(`/discover/matches/${m.id}`);
+  await page.getByTestId("composer").fill("can you see this?");
+  await page.getByTestId("send").click();
+  const bubble = page.locator("[data-testid=msg-mine] > span > span").first();
+  await expect(bubble).toBeVisible();
+  await expect(bubble).toHaveCSS("color", "rgb(255, 255, 255)");
+  await expect(bubble).toHaveCSS("background-color", "rgb(216, 30, 99)");
 });

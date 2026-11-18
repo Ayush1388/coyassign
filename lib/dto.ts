@@ -49,7 +49,15 @@ export type MatchDTO = {
   details?: PublicProfile;
 };
 
-export type MessageDTO = { id: string; body: string; fromMe: boolean; createdAt: string; status?: MessageStatus };
+export type MessageDTO = {
+  id: string;
+  body: string;
+  fromMe: boolean;
+  createdAt: string;
+  status?: MessageStatus;
+  /** When they saw it (only on my own messages with status "seen"). */
+  seenAt?: string;
+};
 
 const interestsOf = (u: UserRow) => (Array.isArray(u.interests) ? u.interests : []);
 

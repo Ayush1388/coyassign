@@ -59,10 +59,10 @@ export function ProfileCard({
         ))}
 
       {/* Scrims: a light one at the top for the pills, a deep one at the bottom for the text. */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/35 to-transparent" />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-24 scrim-top" />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[68%] bg-gradient-to-t from-[#120d17] via-[#120d17]/80 to-transparent"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[68%] scrim-bottom"
       />
 
       {photos.length > 1 && (

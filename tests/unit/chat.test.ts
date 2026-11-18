@@ -169,12 +169,14 @@ describe("read receipts", () => {
     const t0 = new Date("2026-11-18T10:00:00.000Z");
     const sent = await sendMessage(t.db, ME, id, "hi!", t0);
     expect(sent.status).toBe("delivered");
+    expect(sent.seenAt).toBeUndefined();
 
     const early = await getConversation(t.db, ME, id, new Date(t0.getTime() + 300));
     expect(early.messages[0].status).toBe("delivered");
 
     const later = await getConversation(t.db, ME, id, new Date(t0.getTime() + 10_000));
     expect(later.messages[0]).toMatchObject({ fromMe: true, status: "seen" });
+    expect(later.messages[0].seenAt).toMatch(/^2026-11-18T10:00:0\d/); // when they saw it, shown as "Seen 3:30 pm"
     // Receipts are only attached to my own messages.
     expect(later.messages[1].fromMe).toBe(false);
     expect(later.messages[1].status).toBeUndefined();

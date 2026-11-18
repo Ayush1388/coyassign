@@ -18,6 +18,7 @@
   --accent: #ff3d81;
   --accent-ink: #ffffff; /* Text on pink is always white, and pink fills always use --accent-strong (white on it = 4.9:1) */
   --accent-strong: #d81e63;
+  --accent-deep: #b5164f; /* bottom of pink gradients; white text on it is 7:1 */
   --accent-soft: #ffe4ef;
   --ok: #0e8f48;
 
@@ -53,6 +54,7 @@
   --accent: #e8615a;
   --accent-ink: #ffffff;
   --accent-strong: #c2443e;
+  --accent-deep: #a3342f;
   --accent-soft: #fbe7e4;
   --tint-news: #ffffff;
   --tint-status: #ffffff;
@@ -167,9 +169,11 @@ body {
   min-height: 54px;
   padding: 0 24px;
   border-radius: 999px;
-  background: linear-gradient(180deg, var(--accent-strong), color-mix(in srgb, var(--accent-strong) 86%, black));
+  /* Solid colour first: if a browser ever drops the gradient, the white label still has a pink background. */
+  background-color: var(--accent-strong);
+  background-image: linear-gradient(180deg, var(--accent-strong), var(--accent-deep));
   color: #fff;
-  box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--accent-strong) 85%, transparent);
+  box-shadow: 0 10px 22px -12px rgba(120, 10, 50, 0.6);
   font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -251,11 +255,28 @@ body {
 
 /* Pink gradient fill with a soft glow (primary pill tab, big Like button). */
 @utility pink-glow {
-  background: linear-gradient(180deg, var(--accent-strong), color-mix(in srgb, var(--accent-strong) 86%, black));
+  background-color: var(--accent-strong);
+  background-image: linear-gradient(180deg, var(--accent-strong), var(--accent-deep));
   color: #fff;
   box-shadow:
-    0 10px 24px -10px color-mix(in srgb, var(--accent-strong) 80%, transparent),
+    0 10px 24px -10px rgba(120, 10, 50, 0.6),
     inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+/* My chat bubble: solid pink first, gradient on top. White text always has a pink background. */
+@utility bubble-mine {
+  background-color: var(--accent-strong);
+  background-image: linear-gradient(135deg, var(--accent-strong), var(--accent-deep));
+  color: #fff;
+  box-shadow: 0 4px 12px -6px rgba(120, 10, 50, 0.6);
+}
+
+/* Photo scrims as plain gradients (Tailwind's default "in oklab" gradients need a very recent browser). */
+@utility scrim-top {
+  background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0));
+}
+@utility scrim-bottom {
+  background-image: linear-gradient(to top, #120d17 0%, rgba(18, 13, 23, 0.82) 45%, rgba(18, 13, 23, 0) 100%);
 }
 
 /* Floating action button: soft layered shadow, hairline ring, lift on hover, spring on press. */
@@ -295,16 +316,17 @@ body {
 
 /* The hero Like button: pink gradient + coloured glow, no outline. */
 @utility fab-like {
-  background: radial-gradient(120% 120% at 30% 20%, #ff86b1 0%, var(--accent) 45%, #e91e63 100%);
+  background-color: var(--accent);
+  background-image: radial-gradient(120% 120% at 30% 20%, #ff86b1 0%, var(--accent) 45%, #e91e63 100%);
   color: #fff;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.45),
-    0 14px 28px -10px color-mix(in srgb, var(--accent) 75%, transparent),
+    0 14px 28px -10px rgba(255, 61, 129, 0.75),
     0 4px 10px -4px rgba(233, 30, 99, 0.5);
   &:hover:not(:disabled) {
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.45),
-      0 20px 36px -12px color-mix(in srgb, var(--accent) 85%, transparent),
+      0 20px 36px -12px rgba(255, 61, 129, 0.85),
       0 6px 12px -4px rgba(233, 30, 99, 0.55);
   }
 }
@@ -347,11 +369,12 @@ body {
   font-size: 16px;
   font-weight: 800;
   color: #fff;
-  background: linear-gradient(180deg, var(--accent-strong), color-mix(in srgb, var(--accent-strong) 86%, black));
-  box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--accent-strong) 85%, transparent);
+  background-color: var(--accent-strong);
+  background-image: linear-gradient(180deg, var(--accent-strong), var(--accent-deep));
+  box-shadow: 0 10px 22px -12px rgba(120, 10, 50, 0.6);
   transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s;
   &:hover {
-    box-shadow: 0 14px 28px -12px color-mix(in srgb, var(--accent-strong) 95%, transparent);
+    box-shadow: 0 14px 28px -12px rgba(120, 10, 50, 0.75);
   }
   &:active {
     transform: scale(0.98);
