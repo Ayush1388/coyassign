@@ -38,6 +38,9 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   devIndicators: false,
   serverExternalPackages: ["@libsql/client", "libsql"],
+  // The seeded SQLite file is only opened by the API routes, and nothing imports it, so tell the
+  // file tracer to ship it with them (it is copied to the temp folder at runtime on Vercel).
+  outputFileTracingIncludes: { "/api/**/*": ["./data/coy.db"] },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

@@ -41,7 +41,7 @@ Every requirement from the brief, where it is implemented, and how it is verifie
 | A Matches view listing all mutual matches | ✅ | `app/discover/matches`, reads only the `matches` table |
 | Never reveal who liked the user unless mutual | ✅ | See [Security and privacy](#security-and-privacy). Release-blocking payload tests. |
 | **4. APIs:** `GET /feed`, `POST /swipe`, `GET /matches` | ✅ | `app/api/{feed,swipe,matches}`. Also served at the exact paths from the brief via rewrites. |
-| Swipes and matches persist across reloads | ✅ | SQLite. Tests reopen a fresh connection and re-read the data. |
+| Swipes and matches persist across reloads | ✅ | SQLite on disk. Tests reopen a fresh connection and re-read the data. On the Vercel demo this holds while the server instance is warm (see [Deployment](#deployment)). |
 | "Privacy edge cases" (overview) | ✅ | [Security and privacy](#security-and-privacy) |
 | "Clean, tested backend logic" (overview) | ✅ | Business logic lives in `lib/services/*`, separate from HTTP. 85 unit and integration tests plus 50 browser tests, run in CI. |
 
@@ -94,7 +94,7 @@ Open it in a phone-sized window or DevTools device mode. 12 of the 32 seeded pro
 
 | Variable | Purpose |
 |---|---|
-| `DATABASE_URL` | `file:./data/coy.db` locally, a `libsql://…` URL for Turso |
+| `DATABASE_URL` | `file:./data/coy.db` by default, or a `libsql://…` URL for a hosted database such as Turso |
 | `DATABASE_AUTH_TOKEN` | Turso token (`TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` are also read) |
 | `DEMO_RESET` | `true` enables `POST /api/dev/reset` in production. It is always on in development. |
 
@@ -296,18 +296,22 @@ Pink surfaces set a solid background colour first and layer any gradient on top,
 
 ## Deployment
 
-A SQLite file does not persist on serverless hosts, so the hosted demo uses Turso (hosted SQLite, same libSQL code):
+Deployed on Vercel from this repository; every push to `main` deploys.
 
-1. Import the repo in Vercel (Next.js is detected).
-2. Under **Storage → Marketplace**, add **Turso**. It injects `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`, which the app reads automatically.
-3. Optionally set `DEMO_RESET=true` to show the **Reset demo** button.
-4. Deploy. The `vercel-build` script migrates and seeds the database before `next build`.
+**How the database works on Vercel.** Vercel's filesystem is read-only except a temp folder, so it cannot keep a SQLite file permanently. Instead, the build (`vercel-build`) migrates and seeds a SQLite database into the deployment (`data/coy.db`, shipped with the API routes through `outputFileTracingIncludes`). On first use, each server copies it to its temp folder and opens that copy (`prepareRuntimeUrl` in `lib/db/client.ts`, unit-tested).
+
+- Swipes, matches and chats persist across page reloads for as long as that server instance stays warm.
+- The demo starts fresh when Vercel recycles the instance. **Reset demo** replays it at any time.
+- To keep data permanently, set `DATABASE_URL` (and `DATABASE_AUTH_TOKEN`) to a hosted libSQL database such as Turso. It is the same SQLite engine and the same code, with no changes needed.
+
+Set `DEMO_RESET=true` to show the **Reset demo** button on the empty state.
 
 ---
 
 ## Limitations and next steps
 
 - **Single user by design.** A hosted demo is one shared account; use **Reset demo** to replay it.
+- **The Vercel demo database is per server instance** (see [Deployment](#deployment)), so it resets when the instance is recycled.
 - Seeded profiles never swipe "live": their interest in you is fixed seed data, and their chat replies are canned.
 - The feed returns the whole remaining pool. A real product would paginate and rank it, with the same "no incoming-like signal" rule.
 - No authentication, rate limiting or moderation (see [Security and privacy](#7-out-of-scope-for-this-assignment)).
