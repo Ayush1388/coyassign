@@ -1,21 +1,27 @@
-import { BadgeCheck, GraduationCap, Heart, Info, MapPin } from "lucide-react";
+import { BadgeCheck, Heart, MapPin, MoreHorizontal, Quote } from "lucide-react";
 import type { PublicProfile } from "@/lib/api";
 import { shortDistance } from "@/lib/format";
 import { Photo } from "@/components/ui/photo";
-import { InterestChips } from "./interest-chips";
+import { interestIcon } from "./interest-icon";
 
-export function VerifiedBadge({ className = "size-6" }: { className?: string }) {
+export function VerifiedBadge({ className = "size-6", onPhoto = false }: { className?: string; onPhoto?: boolean }) {
   return (
     <span title="Photo verified" className="inline-flex">
-      <BadgeCheck className={`${className} fill-[#d7ecff] text-ink`} strokeWidth={2} aria-hidden />
+      <BadgeCheck
+        className={`${className} ${onPhoto ? "fill-[#3b82f6] text-white" : "fill-[#d7ecff] text-ink"}`}
+        strokeWidth={2.2}
+        aria-hidden
+      />
       <span className="sr-only">Photo verified</span>
     </span>
   );
 }
 
 /**
- * The swipe card. White (the photo is the colour, per Coy's "surface colour names
- * the moment" rule). What you have in common gets the only pink.
+ * The swipe card: full-bleed photo, details over a dark scrim at the bottom
+ * (the scrim keeps white text above 4.5:1 on any photo). Shared interests are
+ * the only pink chips. The prompt replaces a photo strip, since we don't have
+ * per-interest photos and won't fake them.
  */
 export function ProfileCard({
   profile,
@@ -26,77 +32,100 @@ export function ProfileCard({
   eager?: boolean;
   onOpen?: () => void;
 }) {
-  const shared = profile.sharedInterests.length;
+  const shared = new Set(profile.sharedInterests.map((s) => s.toLowerCase()));
+  const interests = [...profile.interests].sort(
+    (a, b) => Number(shared.has(b.toLowerCase())) - Number(shared.has(a.toLowerCase())),
+  );
   const distance = shortDistance(profile.distanceKm);
 
   return (
-    <article aria-label={`${profile.name}, ${profile.age}`} className="sticker-hero flex h-full flex-col overflow-hidden">
-      <div className="relative min-h-0 flex-1 border-b-(length:--bw) border-line bg-soft">
-        <Photo src={profile.photoUrl} name={profile.name} eager={eager} className="absolute inset-0 size-full" />
+    <article
+      aria-label={`${profile.name}, ${profile.age}`}
+      className="relative h-full overflow-hidden rounded-[28px] border-(length:--bw) border-line bg-ink shadow-(--pop-hero)"
+    >
+      <Photo src={profile.photoUrl} name={profile.name} eager={eager} className="absolute inset-0 size-full" />
 
-        {distance && (
-          <span
-            data-testid="card-distance"
-            className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full border-(length:--bw) border-line bg-surface px-2.5 py-1 text-[12px] font-bold"
-          >
-            <MapPin className="size-3.5" aria-hidden />
-            {distance}
-          </span>
-        )}
+      {/* Scrims: a light one at the top for the pills, a deep one at the bottom for the text. */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/35 to-transparent" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[68%] bg-gradient-to-t from-[#120d17] via-[#120d17]/80 to-transparent"
+      />
 
-        {shared > 0 && (
-          <span
-            data-testid="card-shared"
-            className="absolute bottom-3 left-3 inline-flex -rotate-2 items-center gap-1.5 rounded-full border-(length:--bw) border-line bg-accent-soft px-3 py-1 text-[13px] font-extrabold shadow-(--pop)"
+      <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
+        <div className="flex gap-1.5">
+          {distance && (
+            <span data-testid="card-distance" className="glass inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold">
+              <MapPin className="size-3.5" aria-hidden /> {distance}
+            </span>
+          )}
+          {profile.sharedInterests.length > 0 && (
+            <span
+              data-testid="card-shared"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/40 bg-accent px-3 text-[13px] font-extrabold text-accent-ink"
+            >
+              <Heart className="size-3.5 fill-current" aria-hidden />
+              {profile.sharedInterests.length} in common
+            </span>
+          )}
+        </div>
+        {onOpen && (
+          <button
+            type="button"
+            onClick={onOpen}
+            onPointerDownCapture={(e) => e.stopPropagation()}
+            aria-label={`Open ${profile.name}'s full profile`}
+            data-testid="open-profile"
+            className="glass focus-ring flex size-11 shrink-0 items-center justify-center rounded-full"
           >
-            <Heart className="size-3.5 fill-accent text-ink" strokeWidth={2} aria-hidden />
-            {shared} {shared === 1 ? "thing" : "things"} in common
-          </span>
+            <MoreHorizontal className="size-5" aria-hidden />
+          </button>
         )}
       </div>
 
-      <div className="flex flex-col gap-1.5 px-4 pt-3 pb-4">
-        <div className="flex items-start justify-between gap-2">
-          <h2 className="display flex items-center gap-1.5 text-[28px]">
-            <span>
-              {profile.name}
-              <span className="text-[22px] font-semibold tracking-normal text-muted">, {profile.age}</span>
-            </span>
-            {profile.verified && <VerifiedBadge />}
-          </h2>
-          {onOpen && (
-            <button
-              type="button"
-              onClick={onOpen}
-              onPointerDownCapture={(e) => e.stopPropagation()}
-              aria-label={`Open ${profile.name}'s full profile`}
-              data-testid="open-profile"
-              className="btn-soft focus-ring -mt-1 -mr-1 shrink-0"
-            >
-              <Info className="size-5" aria-hidden />
-            </button>
-          )}
-        </div>
+      <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 px-4 pb-4 text-white">
+        <h2 className="flex items-center gap-2 text-[30px] leading-none font-extrabold tracking-[-0.03em]">
+          <span>
+            {profile.name}, <span className="font-semibold">{profile.age}</span>
+          </span>
+          {profile.verified && <VerifiedBadge className="size-7" onPhoto />}
+        </h2>
 
-        <p className="flex min-w-0 items-center gap-1 text-[13px] font-semibold text-muted">
-          {profile.college ? (
-            <>
-              <GraduationCap className="size-4 shrink-0" aria-hidden />
-              <span className="truncate">{profile.college}</span>
-            </>
-          ) : (
-            <>
-              <MapPin className="size-4 shrink-0" aria-hidden />
-              <span className="truncate">{profile.city}</span>
-            </>
-          )}
+        <p className="flex min-w-0 items-center gap-1.5 text-[14px] font-semibold text-white/85">
+          <MapPin className="size-4 shrink-0" aria-hidden />
+          <span className="truncate">{profile.city}</span>
         </p>
 
-        {profile.bio && <p className="line-clamp-2 text-[15px] leading-[1.38]">{profile.bio}</p>}
+        {profile.bio && <p className="line-clamp-2 text-[15px] leading-[1.38] text-white/95">{profile.bio}</p>}
 
-        {profile.interests.length > 0 && (
-          <div className="pt-1">
-            <InterestChips interests={profile.interests} shared={profile.sharedInterests} max={3} size="sm" />
+        {interests.length > 0 && (
+          <ul className="flex max-h-8 flex-wrap gap-1.5 overflow-hidden pt-0.5" aria-label="Interests">
+            {interests.slice(0, 3).map((i) => {
+              const Icon = interestIcon(i);
+              const isShared = shared.has(i.toLowerCase());
+              return (
+                <li
+                  key={i}
+                  data-shared={isShared || undefined}
+                  className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold ${
+                    isShared ? "border border-white/50 bg-accent text-accent-ink" : "glass"
+                  }`}
+                >
+                  <Icon className="size-3.5" aria-hidden />
+                  {i}
+                  {isShared && <span className="sr-only"> (you both like this)</span>}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {profile.prompt && (
+          <div className="glass mt-0.5 rounded-[18px] px-3.5 py-2.5">
+            <p className="inline-flex items-center gap-1 text-[11px] font-bold tracking-[0.08em] text-white/75 uppercase">
+              <Quote className="size-3" aria-hidden /> {profile.prompt.question}
+            </p>
+            <p className="mt-0.5 line-clamp-1 text-[14px] leading-snug font-semibold">{profile.prompt.answer}</p>
           </div>
         )}
       </div>
@@ -106,13 +135,14 @@ export function ProfileCard({
 
 export function ProfileCardSkeleton() {
   return (
-    <div className="sticker-hero flex h-full animate-pulse flex-col overflow-hidden" aria-label="Loading profiles" role="status">
-      <div className="flex-1 bg-soft" />
-      <div className="flex flex-col gap-3 p-4">
-        <div className="h-7 w-1/2 rounded-xl bg-soft" />
-        <div className="h-4 w-2/3 rounded-lg bg-soft" />
-        <div className="h-4 w-full rounded-lg bg-soft" />
-      </div>
+    <div
+      className="flex h-full animate-pulse flex-col justify-end gap-3 overflow-hidden rounded-[28px] border-(length:--bw) border-line bg-soft p-5 shadow-(--pop-hero)"
+      aria-label="Loading profiles"
+      role="status"
+    >
+      <div className="h-8 w-1/2 rounded-xl bg-hairline" />
+      <div className="h-4 w-2/3 rounded-lg bg-hairline" />
+      <div className="h-4 w-full rounded-lg bg-hairline" />
     </div>
   );
 }

@@ -1,11 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque } from "next/font/google";
+import { Bricolage_Grotesque, DM_Serif_Display } from "next/font/google";
 import { TabBar } from "@/components/nav/tab-bar";
 import { THEME_INIT_SCRIPT } from "@/components/theme/theme-toggle";
 import "./globals.css";
 
 // Coy uses one family for every role; hierarchy comes from weight (400-800).
 const bricolage = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-bricolage", display: "swap" });
+// Editorial serif for the Discover hero line only ("Meet Interesting People").
+const serif = DM_Serif_Display({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-dmserif", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Coy · Discover",
@@ -21,7 +23,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="coy" suppressHydrationWarning className={bricolage.variable}>
+    <html lang="en" data-theme="coy" suppressHydrationWarning className={`${bricolage.variable} ${serif.variable}`}>
       <head>
         {/* Applies the saved theme before first paint, so there's no flash. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />

@@ -46,7 +46,12 @@ test("tab bar navigates between Home and Discover", async ({ page }) => {
   await expect(page).toHaveURL(/\/home$/);
   await expect(topCard(page)).toHaveCount(0);
   await page.getByRole("link", { name: "Discover" }).click();
-  await expect(page.getByRole("heading", { name: "Discover" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Meet interesting people/i })).toBeVisible();
+  // Section tabs inside Discover
+  await page.getByTestId("matches-link").click();
+  await expect(page).toHaveURL(/\/discover\/matches$/);
+  await page.getByTestId("tab-chats").click();
+  await expect(page).toHaveURL(/\/discover\/chats$/);
 });
 
 test("shows one profile card with its details", async ({ page }) => {
@@ -128,11 +133,15 @@ test("mutual like shows It's a match and appears in Matches", async ({ page }) =
   await expect(page.getByTestId("msg-mine")).toContainText("Hey! Loved your profile");
   await expect(page.getByTestId("msg-theirs").first()).toBeVisible({ timeout: 10_000 });
 
-  await page.getByRole("link", { name: "Back to matches" }).click();
-  await expect(page).toHaveURL(/\/discover\/matches$/);
+  await page.getByRole("link", { name: "Back to chats" }).click();
+  await expect(page).toHaveURL(/\/discover\/chats$/);
+  await expect(page.getByTestId("chat-item")).toHaveCount(1);
+  await expect(page.getByTestId("chat-item")).toContainText(matchedName!);
+  await expect(page.getByTestId("chat-item")).toContainText("Your turn");
+
+  await page.getByTestId("matches-link").click();
   await expect(page.getByTestId("match-item")).toHaveCount(1);
   await expect(page.getByTestId("match-item")).toContainText(matchedName!);
-  await expect(page.getByTestId("match-item")).toContainText("Your turn");
 });
 
 test("one-sided interest never shows in Matches", async ({ page }) => {
@@ -275,4 +284,18 @@ test("unmatching from a chat removes the match", async ({ page }) => {
   await page.getByTestId("confirm-unmatch").click();
   await expect(page).toHaveURL(/\/discover\/matches$/);
   await expect(page.getByTestId("match-item")).toHaveCount(before.length - 1);
+});
+
+test("the Liked tab lists only my own pending likes", async ({ page }) => {
+  const feed = await apiFeed(page);
+  // Like everyone: seeded likers become matches, the rest stay pending.
+  for (const p of feed.slice(0, 8)) await page.request.post("/api/swipe", { data: { profileId: p.id, action: "LIKE" } });
+  const matched = ((await (await page.request.get("/api/matches")).json()).matches as { profile: { id: string } }[]).map(
+    (m) => m.profile.id,
+  );
+  await page.goto("/discover/liked");
+  const items = page.getByTestId("liked-item");
+  await expect(items).toHaveCount(8 - matched.length);
+  for (const id of matched) await expect(page.locator(`[data-testid=liked-item][data-profile-id="${id}"]`)).toHaveCount(0);
+  await expect(page.getByTestId("count-liked")).toHaveText(String(8 - matched.length));
 });

@@ -7,7 +7,7 @@ A swipe-based **Discover** tab built as a standalone app alongside a placeholder
 
 ![Discover, match, matches and empty state](docs/screenshots/overview.png)
 
-<sub>Left to right: Discover deck · full profile · "It's a match!" · chat with starters · chat with reply · matches inbox · filters</sub>
+<sub>Left to right: Discover · full profile · "It's a match!" · chat · Matches · Liked (your pending likes) · Chats</sub>
 
 ---
 
@@ -26,8 +26,8 @@ Requires Node 20.12+ (tested on Node 24) and pnpm. No `.env` is needed locally; 
 | `pnpm dev` | Migrate + idempotent seed, then the dev server |
 | `pnpm db:setup` | Apply migrations and seed (safe to re-run; it never deletes your swipes) |
 | `pnpm db:reset` | Clear *your* swipes and matches to replay the demo (the empty state also has a **Reset demo** button) |
-| `pnpm test` | 71 unit, API-integration and privacy tests (Vitest) |
-| `pnpm test:e2e` | 32 Playwright tests on mobile (Pixel 7) and desktop (builds and starts the app on port 3200 with its own DB) |
+| `pnpm test` | 72 unit, API-integration and privacy tests (Vitest) |
+| `pnpm test:e2e` | 34 Playwright tests on mobile (Pixel 7) and desktop (builds and starts the app on port 3200 with its own DB) |
 | `pnpm typecheck` / `pnpm build` | Type check / production build |
 
 **Demo tip:** 12 of the 32 seeded profiles have already liked you. You can't tell which (that's the point), but the third card is one of them.
@@ -61,6 +61,19 @@ Requires Node 20.12+ (tested on Node 24) and pnpm. No `.env` is needed locally; 
   - A safety reminder ("Never share OTPs…") sits above the messages.
 - **Safety:** **Unmatch** deletes the chat for both people, and **Report** (with a reason) also unmatches. Both are confirmed in in-app sheets, never browser pop-ups.
 - *Demo note:* seeded profiles reply on their own a couple of seconds after you message, so the chat feels alive. Replies are stored with a future `deliver_at`, which works on serverless without background jobs.
+
+**Layout: adapted from a design mockup, on Coy's light background**
+
+The Discover layout follows a supplied mockup: logo with icon buttons, pill section tabs, an editorial serif hero line, a full-bleed photo card with a tilted card behind, and a large glowing Like button. Some of the mockup's elements conflict with the brief or with Coy's core promise, so they were swapped for safe equivalents:
+
+| Mockup | Built as | Why |
+|---|---|---|
+| Tabs: Discover · Matches · **Likes 24** · Chats | Discover · Matches · **Liked** · Chats | "Likes 24" means *who liked you*, the one thing Coy never reveals. **Liked** lists the people **you** liked who haven't matched yet (`GET /api/likes/sent`). That is your own data and only you can see it. |
+| ↺ Undo · ★ Super-like | ⓘ Profile · ⚙︎ Filters | Undo would break the brief ("a profile that has been swiped on must never appear again"). A Super-like reveals one-sided interest. |
+| "12K+ active now" | Avatars of the next people in your deck + "32 new faces" | Real data instead of an invented number, and no activity tracking. |
+| Interest photo strip | The profile's prompt | There are no per-interest photos, and we don't fabricate them. |
+| 5-tab bottom bar | Home + Discover | The brief asks for Home + Discover. Matches, Liked and Chats live inside Discover. |
+| Dark background | Coy's white background | As requested. The card keeps a dark scrim so text over photos stays above 4.5:1 contrast. |
 
 **Feature research: what I added, and what I deliberately didn't**
 
@@ -130,6 +143,9 @@ The logged-in user's own name, area and interests (used by the filters sheet).
 
 ### `GET /feed?minAge=&maxAge=&maxKm=` (filters optional)
 Each profile also carries `verified`, `prompt`, a coarse `distanceKm` band (0 = under 1 km) and `sharedInterests`. Coordinates are never returned.
+
+### `GET /api/likes/sent`
+People *you* liked who haven't matched yet (the **Liked** tab). There is intentionally no endpoint for who liked you.
 
 ### Chat
 | Endpoint | Purpose |

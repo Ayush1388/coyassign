@@ -117,3 +117,16 @@ describe("feed filters, distance and shared interests", () => {
     expect(Array.isArray(list[0].sharedInterests)).toBe(true);
   });
 });
+
+describe("sent likes (the 'Liked' tab)", () => {
+  it("lists only my own pending likes: no passes, no matches, never people who liked me", async () => {
+    const { getSentLikes } = await import("@/lib/services/likes");
+    await recordSwipe(t.db, ME, { profileId: NON_LIKERS[0], action: "LIKE" }); // pending
+    await recordSwipe(t.db, ME, { profileId: NON_LIKERS[1], action: "PASS" }); // pass
+    await recordSwipe(t.db, ME, { profileId: LIKERS[0], action: "LIKE" }); // becomes a match
+    const sent = (await getSentLikes(t.db, ME)).map((p) => p.id);
+    expect(sent).toEqual([NON_LIKERS[0]]);
+    // Seeded profiles that liked me (but I haven't swiped) must not appear.
+    for (const id of LIKERS.slice(1)) expect(sent).not.toContain(id);
+  });
+});

@@ -1,4 +1,4 @@
-import { MatchesScreen } from "@/components/matches/matches-screen";
+import { MatchesScreen } from "@/components/matches/section-screens";
 
 export default function MatchesPage() {
   return <MatchesScreen />;

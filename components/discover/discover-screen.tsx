@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, Lock, RotateCcw, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { Heart, Info, RotateCcw, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -14,11 +14,14 @@ import {
   type SwipeResponse,
 } from "@/lib/api";
 import { AppHeader } from "@/components/nav/app-header";
+import { Photo } from "@/components/ui/photo";
 import { FiltersSheet, isFiltered, loadFilters, saveFilters } from "./filters-sheet";
 import { MatchOverlay } from "./match-overlay";
 import { ProfileCard, ProfileCardSkeleton } from "./profile-card";
 import { ProfileSheet } from "./profile-sheet";
+import { SectionTabs } from "./section-tabs";
 import { SwipeCard, type SwipeCardHandle } from "./swipe-card";
+import { useCounts } from "./use-counts";
 
 type FeedState =
   | { status: "loading" }
@@ -27,25 +30,22 @@ type FeedState =
 
 type Toast = { id: number; tone: "like" | "pass" | "error"; text: string; retry?: () => void };
 
-/**
- * How the cards behind the top one sit: a neat deck peeking out a little from the
- * TOP-RIGHT corner of the top card. Same size, untilted, evenly offset.
- */
+/** The deck: the next card sits behind, tilted and peeking out on the right. The one after waits invisibly. */
 const STACK = [
-  { x: 0, y: 0 },
-  { x: 8, y: -8 },
-  { x: 16, y: -16 },
+  { x: 0, y: 0, rotate: 0, scale: 1, opacity: 1 },
+  { x: 16, y: 8, rotate: 5, scale: 0.96, opacity: 1 },
+  { x: 16, y: 8, rotate: 5, scale: 0.96, opacity: 0 },
 ];
 
 export function DiscoverScreen({ canReset }: { canReset: boolean }) {
   const [feed, setFeed] = useState<FeedState>({ status: "loading" });
   const [filters, setFilters] = useState<Filters | null>(null);
   const [myInterests, setMyInterests] = useState<string[]>([]);
-  const [matchCount, setMatchCount] = useState<number | null>(null);
   const [match, setMatch] = useState<MatchDTO | null>(null);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
   const [sheet, setSheet] = useState<"profile" | "filters" | null>(null);
+  const { counts, refresh: refreshCounts } = useCounts();
   const cardRef = useRef<SwipeCardHandle>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -67,7 +67,6 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
   // Filters live in localStorage (a UI preference), so read them after mount.
   useEffect(() => {
     setFilters(loadFilters());
-    api.matches().then((m) => setMatchCount(m.length)).catch(() => setMatchCount(null));
     api.me().then((me) => setMyInterests(me.interests)).catch(() => {});
   }, []);
 
@@ -105,9 +104,9 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
     (profile: PublicProfile, action: SwipeAction, result: SwipeResponse) => {
       setFeed((f) => (f.status === "ready" ? { ...f, profiles: f.profiles.filter((p) => p.id !== profile.id) } : f));
       setBusy(false);
+      void refreshCounts();
       if (result.matched) {
         setMatch(result.match);
-        setMatchCount((c) => (c ?? 0) + 1);
         setToast(null);
       } else {
         showToast({
@@ -116,7 +115,7 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
         });
       }
     },
-    [showToast],
+    [showToast, refreshCounts],
   );
 
   // Keyboard: ← pass, → like, ↑ open profile.
@@ -144,7 +143,7 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
   async function resetDemo() {
     try {
       await api.resetDemo();
-      setMatchCount(0);
+      void refreshCounts();
       if (filters) await loadFeed(filters);
     } catch {
       showToast({ tone: "error", text: "Couldn't reset the demo." }, 3000);
@@ -152,66 +151,51 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
   }
 
   const filtered = filters ? isFiltered(filters) : false;
+  const attention = counts ? counts.yourTurn + counts.newMatches : 0;
 
   return (
     <>
-      <AppHeader>
-        <Link
-          href="/discover/matches"
-          data-testid="matches-link"
-          aria-label={matchCount ? `Matches, ${matchCount}` : "Matches"}
-          className="btn-soft focus-ring px-3.5"
-        >
-          <Heart className="size-[18px] fill-accent text-accent-strong" aria-hidden />
-          Matches
-          {!!matchCount && (
-            <span
-              data-testid="match-count"
-              className="min-w-[22px] rounded-full border-(length:--bw) border-line bg-accent px-1.5 text-center text-[12px] leading-[18px] font-extrabold text-accent-ink"
-            >
-              {matchCount}
-            </span>
-          )}
-        </Link>
-      </AppHeader>
+      <AppHeader attention={attention} />
+      <SectionTabs active="discover" counts={counts} />
 
-      <div className="px-5 pt-2 pb-3">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="display text-[36px]">Discover</h1>
-          <button
-            type="button"
-            onClick={() => setSheet("filters")}
-            data-testid="filters-button"
-            aria-label={filtered ? "Filters (on)" : "Filters"}
-            className="btn-soft focus-ring relative px-3.5"
-          >
-            <SlidersHorizontal className="size-[18px]" aria-hidden />
-            Filters
-            {filtered && (
-              <span aria-hidden className="absolute -top-0.5 -right-0.5 size-3 rounded-full border-2 border-bg bg-accent" />
-            )}
-          </button>
+      {/* Hero line */}
+      <div className="px-5 pt-3 pb-2">
+        <h1 className="font-serif text-[31px] leading-[1.05] tracking-[-0.01em] whitespace-nowrap">
+          Meet <em className="text-accent-strong">interesting</em> people
+        </h1>
+        <div className="mt-1.5 flex items-center justify-between gap-3">
+          <p className="text-[14px] font-semibold text-muted">
+            Secret likes,{" "}
+            <span className="relative inline-block text-ink">
+              real
+              <svg aria-hidden viewBox="0 0 60 8" className="absolute -bottom-1.5 left-0 h-2 w-full text-accent" preserveAspectRatio="none">
+                <path d="M1 5.5C14 1.5 32 1 59 4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+              </svg>
+            </span>{" "}
+            chats.
+          </p>
+          {feed.status === "ready" && profiles.length > 0 && (
+            <div className="flex shrink-0 items-center gap-1.5 rounded-full border-(length:--bw) border-hairline bg-surface py-0.5 pr-3 pl-0.5">
+              <span className="flex -space-x-2" aria-hidden>
+                {profiles.slice(0, 3).map((p) => (
+                  <span key={p.id} className="relative size-7 overflow-hidden rounded-full border-2 border-surface">
+                    <Photo src={p.photoUrl} name={p.name} className="absolute inset-0 size-full" eager />
+                  </span>
+                ))}
+              </span>
+              <p data-testid="remaining" className="text-[12px] font-bold whitespace-nowrap text-muted">
+                <strong className="text-[14px] font-extrabold text-ink">{profiles.length}</strong> new{" "}
+                {profiles.length === 1 ? "face" : "faces"}
+              </p>
+            </div>
+          )}
         </div>
-        <p className="mt-1 flex items-center gap-1.5 text-[13px] font-semibold text-muted">
-          <Lock className="size-3.5 shrink-0" aria-hidden />
-          <span>
-            Likes stay secret unless it&apos;s mutual
-            {feed.status === "ready" && profiles.length > 0 && (
-              <>
-                {" · "}
-                <span data-testid="remaining">
-                  {profiles.length} new {profiles.length === 1 ? "face" : "faces"}
-                </span>
-              </>
-            )}
-          </span>
-        </p>
       </div>
 
-      {/* The deck: narrower than the screen, with the next cards visibly stacked behind. */}
-      <section aria-label="Profiles" className="relative mx-auto w-full max-w-[350px] flex-1 px-5 sm:px-0">
-        <div className="relative h-full min-h-[440px] max-h-[540px] pt-4 pr-4">
-          <div className="absolute top-4 right-4 bottom-0 left-0">
+      {/* The deck */}
+      <section aria-label="Profiles" className="relative mx-auto flex min-h-0 w-full max-w-[370px] flex-1 flex-col px-5 sm:px-0">
+        <div className="relative min-h-[360px] max-h-[560px] flex-1 pt-2 pr-5 pb-3">
+          <div className="absolute top-2 right-5 bottom-3 left-0">
             {(feed.status === "loading" || filters === null) && <ProfileCardSkeleton />}
 
             {feed.status === "error" && (
@@ -237,7 +221,7 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
             {feed.status === "ready" && !top && (
               <EmptyState
                 filtered={filtered}
-                matchCount={matchCount ?? 0}
+                matchCount={counts?.matches ?? 0}
                 canReset={canReset}
                 onReset={resetDemo}
                 onWiden={() => setSheet("filters")}
@@ -272,9 +256,9 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
                     aria-hidden
                     data-testid="stack-card"
                     className="pointer-events-none absolute inset-0"
-                    style={{ zIndex: 10 - i }}
-                    initial={{ ...STACK[Math.min(i + 1, 2)], opacity: i === 2 ? 0 : 1 }}
-                    animate={{ ...STACK[i], opacity: 1 }}
+                    style={{ zIndex: 10 - i, transformOrigin: "50% 100%" }}
+                    initial={STACK[2]}
+                    animate={STACK[i]}
                     transition={{ type: "spring", stiffness: 300, damping: 28 }}
                   >
                     <ProfileCard profile={p} />
@@ -289,7 +273,7 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
                   initial={{ opacity: 0, y: -10, scale: 0.96 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -8, transition: { duration: 0.12 } }}
-                  className={`absolute top-3 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border-(length:--bw) border-line px-4 py-2 text-[14px] font-bold whitespace-nowrap shadow-(--pop) ${
+                  className={`absolute top-14 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border-(length:--bw) border-line px-4 py-2 text-[14px] font-bold whitespace-nowrap shadow-(--pop) ${
                     toast.tone === "like" ? "bg-accent text-accent-ink" : "bg-surface text-ink"
                   }`}
                   role={toast.tone === "error" ? "alert" : "status"}
@@ -317,16 +301,27 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
         </div>
       </section>
 
-      <div className="flex items-center justify-center gap-7 pt-3 pb-2">
+      {/* Actions: profile · pass · LIKE · filters */}
+      <div className="flex items-center justify-center gap-4 pt-2 pb-1">
+        <button
+          type="button"
+          data-testid="info-button"
+          aria-label={top ? `Open ${top.name}'s full profile` : "Open profile"}
+          disabled={!top || busy || !!match}
+          onClick={() => setSheet("profile")}
+          className="sticker pressable focus-ring flex size-14 items-center justify-center rounded-full!"
+        >
+          <Info className="size-6" aria-hidden />
+        </button>
         <button
           type="button"
           data-testid="pass-button"
           aria-label={top ? `Pass on ${top.name}` : "Pass"}
           disabled={locked}
           onClick={() => cardRef.current?.swipe("PASS")}
-          className="sticker pressable focus-ring flex size-16 items-center justify-center rounded-full!"
+          className="sticker pressable focus-ring flex size-[68px] items-center justify-center rounded-full!"
         >
-          <X className="size-7" strokeWidth={3} aria-hidden />
+          <X className="size-8" strokeWidth={3} aria-hidden />
         </button>
         <button
           type="button"
@@ -334,9 +329,21 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
           aria-label={top ? `Like ${top.name}` : "Like"}
           disabled={locked}
           onClick={() => cardRef.current?.swipe("LIKE")}
-          className="sticker pressable focus-ring flex size-[72px] items-center justify-center rounded-full! bg-accent!"
+          className="pink-glow pressable focus-ring flex size-[84px] items-center justify-center rounded-full border-(length:--bw) border-line"
         >
-          <Heart className="size-8 fill-surface text-ink" strokeWidth={2} aria-hidden />
+          <Heart className="size-10 fill-surface text-ink" strokeWidth={1.75} aria-hidden />
+        </button>
+        <button
+          type="button"
+          onClick={() => setSheet("filters")}
+          data-testid="filters-button"
+          aria-label={filtered ? "Filters (on)" : "Filters"}
+          className="sticker pressable focus-ring relative flex size-14 items-center justify-center rounded-full!"
+        >
+          <SlidersHorizontal className="size-6" aria-hidden />
+          {filtered && (
+            <span aria-hidden className="absolute -top-0.5 -right-0.5 size-3.5 rounded-full border-2 border-surface bg-accent" />
+          )}
         </button>
       </div>
       <p className="hidden pb-2 text-center text-[12px] font-semibold text-muted pointer-fine:block" aria-hidden>

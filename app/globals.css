@@ -88,6 +88,7 @@
   --color-status: var(--tint-status);
   --color-reward: var(--tint-reward);
   --font-sans: var(--font-bricolage), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-serif: var(--font-dmserif), Georgia, "Times New Roman", serif;
 }
 
 html,
@@ -230,6 +231,24 @@ body {
   &::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* Pink gradient fill with a soft glow (primary pill tab, big Like button). */
+@utility pink-glow {
+  background: linear-gradient(180deg, #ff6aa0 0%, var(--accent) 55%, #f02a70 100%);
+  color: var(--accent-ink);
+  box-shadow:
+    0 10px 24px -8px color-mix(in srgb, var(--accent) 70%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+/* Frosted chip over a photo. */
+@utility glass {
+  background: rgba(20, 16, 26, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #fff;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 @utility focus-ring {

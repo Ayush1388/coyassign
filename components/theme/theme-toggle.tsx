@@ -9,7 +9,7 @@ const KEY = "coy-theme";
 export const THEME_INIT_SCRIPT = `try{var t=localStorage.getItem("${KEY}");if(t==="minimal"||t==="coy")document.documentElement.dataset.theme=t}catch(e){}`;
 
 /** Switches between the Coy look (default) and the minimal look. A UI preference only. */
-export function ThemeToggle() {
+export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const [theme, setTheme] = useState<Theme>("coy");
 
   useEffect(() => {
@@ -36,10 +36,10 @@ export function ThemeToggle() {
       data-theme-current={theme}
       aria-label={`Style: ${theme === "coy" ? "Coy" : "Minimal"}. Switch to ${next === "coy" ? "Coy" : "Minimal"}`}
       title="Switch style"
-      className="btn-soft focus-ring px-3.5"
+      className={`btn-soft focus-ring ${compact ? "size-11" : "px-3.5"}`}
     >
-      <Palette className="size-[18px]" aria-hidden />
-      <span>{theme === "coy" ? "Coy" : "Minimal"}</span>
+      <Palette className={compact ? "size-5" : "size-[18px]"} aria-hidden />
+      {!compact && <span>{theme === "coy" ? "Coy" : "Minimal"}</span>}
     </button>
   );
 }

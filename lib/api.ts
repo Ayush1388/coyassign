@@ -66,6 +66,7 @@ export const api = {
     request<{ profiles: PublicProfile[] }>(`/api/feed${feedQuery(filters)}`).then((r) => r.profiles),
   me: () => request<{ me: { name: string; city: string; interests: string[] } }>("/api/me").then((r) => r.me),
   matches: () => request<{ matches: MatchDTO[] }>("/api/matches").then((r) => r.matches),
+  sentLikes: () => request<{ profiles: PublicProfile[] }>("/api/likes/sent").then((r) => r.profiles),
   swipe: (profileId: string, action: SwipeAction) => request<SwipeResponse>("/api/swipe", jsonInit("POST", { profileId, action })),
   conversation: (matchId: string) => request<Conversation>(`/api/matches/${encodeURIComponent(matchId)}/messages`),
   send: (matchId: string, body: string) =>

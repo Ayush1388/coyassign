@@ -114,7 +114,7 @@ export function ChatScreen({ matchId }: { matchId: string }) {
   return (
     <Shell>
       <header className="flex items-center gap-3 border-b border-hairline px-4 pt-[max(12px,env(safe-area-inset-top))] pb-3">
-        <Link href="/discover/matches" aria-label="Back to matches" className="btn-soft focus-ring shrink-0">
+        <Link href="/discover/chats" aria-label="Back to chats" className="btn-soft focus-ring shrink-0">
           <ArrowLeft className="size-5" aria-hidden />
         </Link>
         {p ? (
