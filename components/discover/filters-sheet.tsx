@@ -148,7 +148,7 @@ export function FiltersSheet({
                 data-testid={`intent-${it.id}`}
                 onClick={() => set({ intents: toggle(draft.intents, it.id) })}
                 className={`focus-ring relative flex min-h-[64px] flex-col items-start justify-center rounded-[18px] px-3.5 py-2.5 text-left transition-all duration-150 active:scale-[0.98] ${
-                  on ? "bg-accent-soft ring-2 ring-accent" : "bg-soft hover:bg-hairline"
+                  on ? "bg-surface shadow-sm ring-2 ring-accent-strong" : "bg-soft hover:bg-hairline"
                 }`}
               >
                 <span className="text-[20px] leading-none" aria-hidden>
@@ -156,7 +156,7 @@ export function FiltersSheet({
                 </span>
                 <span className="mt-1 text-[14px] leading-tight font-bold">{it.label}</span>
                 {on && (
-                  <span className="absolute top-2 right-2 flex size-5 items-center justify-center rounded-full bg-accent text-white">
+                  <span className="absolute top-2 right-2 flex size-5 items-center justify-center rounded-full bg-accent-strong text-white">
                     <Check className="size-3.5" strokeWidth={3} aria-hidden />
                   </span>
                 )}
@@ -370,7 +370,7 @@ function Chip({
       onClick={onClick}
       data-testid={testId}
       className={`focus-ring inline-flex h-10 items-center gap-1.5 rounded-full px-3.5 text-[14px] font-semibold transition-all duration-150 active:scale-[0.96] ${
-        on ? "bg-accent-soft font-bold text-ink ring-2 ring-accent" : "bg-soft text-ink hover:bg-hairline"
+        on ? "bg-surface font-bold text-ink shadow-sm ring-2 ring-accent-strong" : "bg-soft text-ink hover:bg-hairline"
       }`}
     >
       {on && <Check className="size-3.5 text-accent-strong" strokeWidth={3} aria-hidden />}

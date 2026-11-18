@@ -9,9 +9,12 @@ import { VerifiedBadge } from "@/components/discover/profile-card";
 import { Photo } from "@/components/ui/photo";
 
 /**
- * The rich, borderless person card used by Liked and Matches: photo plus thumbnails,
- * distance, looking-for, what you share and interests. `footer` is the per-section status line;
- * `actions` sit under it (e.g. a Message button). Tapping the card body calls onOpen.
+ * The person card used by Liked and Matches.
+ *
+ * Spacing follows an 8px rhythm: 16px frame, 16px between photo and details, 12px between
+ * groups, 4–6px inside a group. No colour fills inside the card: pink appears only as the
+ * heart and the "you both like" text. The status line and the optional action sit on their
+ * own row under a divider, so nothing is squeezed into the narrow details column.
  */
 export function PersonCard({
   profile: p,
@@ -19,15 +22,12 @@ export function PersonCard({
   footer,
   actions,
   testId,
-  accent = false,
 }: {
   profile: PublicProfile;
   onOpen: () => void;
   footer: React.ReactNode;
   actions?: React.ReactNode;
   testId: string;
-  /** Pink ring for "needs your attention" (e.g. your turn to reply). */
-  accent?: boolean;
 }) {
   const intent = intentOf(p.intent);
   const distance = shortDistance(p.distanceKm);
@@ -37,74 +37,85 @@ export function PersonCard({
     <div
       data-testid={testId}
       data-profile-id={p.id}
-      className={`group flex gap-3.5 rounded-[24px] bg-surface p-3 transition-shadow ${
-        accent
-          ? "shadow-[0_0_0_2px_var(--accent),0_12px_28px_-16px_rgba(216,30,99,0.55)]"
-          : "shadow-[0_0_0_1px_var(--hairline),0_10px_24px_-16px_rgba(21,18,29,0.35)] hover:shadow-[0_0_0_1px_var(--hairline),0_16px_30px_-16px_rgba(21,18,29,0.45)]"
-      }`}
+      className="group rounded-[24px] bg-surface p-4 shadow-[0_0_0_1px_var(--hairline),0_10px_24px_-16px_rgba(21,18,29,0.35)] transition-shadow hover:shadow-[0_0_0_1px_var(--hairline),0_16px_30px_-16px_rgba(21,18,29,0.45)]"
     >
-      <button
-        type="button"
-        onClick={onOpen}
-        aria-label={`Open ${p.name}'s profile`}
-        className="focus-ring relative w-[112px] shrink-0 rounded-[18px] text-left"
-      >
-        <span className="relative block aspect-[3/4] overflow-hidden rounded-[18px] bg-soft">
-          <Photo
-            src={photos[0] ?? null}
-            name={p.name}
-            className="absolute inset-0 size-full transition-transform duration-300 group-hover:scale-[1.03]"
-            eager
-          />
-        </span>
-        {photos.length > 1 && (
-          <span className="mt-1.5 flex gap-1" aria-label={`${photos.length} photos`}>
-            {photos.slice(1, 3).map((src) => (
-              <span key={src} className="relative block aspect-square flex-1 overflow-hidden rounded-[10px] bg-soft">
-                <Photo src={src} name={p.name} className="absolute inset-0 size-full" />
-              </span>
-            ))}
+      <div className="flex gap-4">
+        <button
+          type="button"
+          onClick={onOpen}
+          aria-label={`Open ${p.name}'s profile`}
+          className="focus-ring relative w-[104px] shrink-0 self-start rounded-[18px] text-left"
+        >
+          <span className="relative block aspect-[3/4] overflow-hidden rounded-[18px] bg-soft">
+            <Photo
+              src={photos[0] ?? null}
+              name={p.name}
+              className="absolute inset-0 size-full transition-transform duration-300 group-hover:scale-[1.03]"
+              eager
+            />
           </span>
-        )}
-      </button>
-
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5 py-0.5">
-        <button type="button" onClick={onOpen} className="focus-ring flex flex-col gap-1.5 rounded-[12px] text-left">
-          <span className="flex items-center gap-1.5">
-            <span className="truncate text-[19px] font-extrabold tracking-[-0.02em]">
-              {p.name}, {p.age}
-            </span>
-            {p.verified && <VerifiedBadge className="size-[18px] shrink-0" />}
-          </span>
-          <span className="flex items-center gap-1 truncate text-[13px] font-semibold text-muted">
-            <MapPin className="size-3.5 shrink-0" aria-hidden />
-            {distance ? `${distance} · ` : ""}
-            {p.city}
-          </span>
-          {intent && (
-            <span
-              className={`inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-bold ${
-                p.sameIntent ? "bg-accent text-accent-ink" : "bg-soft"
-              }`}
-            >
-              <span aria-hidden>{intent.emoji}</span> {intent.label}
-              {p.sameIntent && <span className="font-semibold"> · same as you</span>}
+          {photos.length > 1 && (
+            <span className="mt-2 flex gap-2" aria-label={`${photos.length} photos`}>
+              {photos.slice(1, 3).map((src) => (
+                <span key={src} className="relative block aspect-square flex-1 overflow-hidden rounded-[10px] bg-soft">
+                  <Photo src={src} name={p.name} className="absolute inset-0 size-full" />
+                </span>
+              ))}
             </span>
           )}
-          {p.sharedInterests.length > 0 ? (
-            <span className="inline-flex items-center gap-1 text-[13px] font-bold text-accent-strong" data-testid="card-shared-line">
-              <Heart className="size-3.5 fill-current" aria-hidden />
-              You both like {listInterests(p.sharedInterests, 2)}
-            </span>
-          ) : (
-            <span className="text-[13px] font-semibold text-muted">Ask about {p.interests[0] ?? "their day"}!</span>
-          )}
-          <span className="mt-0.5">
-            <InterestChips interests={p.interests} shared={p.sharedInterests} max={3} size="sm" />
-          </span>
         </button>
-        <div className="mt-auto pt-1">{footer}</div>
-        {actions && <div className="pt-1">{actions}</div>}
+
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={onOpen}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onOpen();
+            }
+          }}
+          className="focus-ring flex min-w-0 flex-1 cursor-pointer flex-col gap-3 rounded-[12px] text-left"
+        >
+          <div className="flex flex-col gap-1">
+            <p className="flex items-center gap-1.5">
+              <span className="truncate text-[19px] font-extrabold tracking-[-0.02em]">
+                {p.name}, {p.age}
+              </span>
+              {p.verified && <VerifiedBadge className="size-[18px] shrink-0" />}
+            </p>
+            <p className="flex items-center gap-1 truncate text-[13px] font-semibold text-muted">
+              <MapPin className="size-3.5 shrink-0" aria-hidden />
+              <span className="truncate">
+                {distance ? `${distance} · ` : ""}
+                {p.city}
+              </span>
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            {intent && (
+              <p className="text-[14px] font-semibold">
+                <span aria-hidden>{intent.emoji}</span> {intent.label}
+              </p>
+            )}
+            {p.sharedInterests.length > 0 ? (
+              <p className="flex items-start gap-1.5 text-[13px] leading-snug font-semibold text-accent-strong" data-testid="card-shared-line">
+                <Heart className="mt-[3px] size-3.5 shrink-0 fill-current" aria-hidden />
+                You both like {listInterests(p.sharedInterests, 2)}
+              </p>
+            ) : (
+              <p className="text-[13px] font-medium text-muted">Ask about {p.interests[0] ?? "their day"}!</p>
+            )}
+          </div>
+
+          <InterestChips interests={p.interests} shared={p.sharedInterests} max={3} size="sm" />
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-center gap-3 border-t border-hairline pt-3.5">
+        <div className="min-w-0 flex-1">{footer}</div>
+        {actions}
       </div>
     </div>
   );

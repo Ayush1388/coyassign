@@ -46,7 +46,7 @@ export function SectionTabs({ active, counts }: { active: Section; counts: Count
                   <span
                     data-testid={id === "matches" ? "match-count" : `count-${id}`}
                     className={`ml-0.5 min-w-[18px] rounded-full px-1 text-center text-[11px] leading-[18px] font-extrabold ${
-                      isActive ? "bg-white text-ink" : "bg-accent text-accent-ink"
+                      isActive ? "bg-white text-accent-strong" : "bg-accent-strong text-white"
                     }`}
                   >
                     {n}

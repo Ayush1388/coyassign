@@ -151,7 +151,7 @@ export function ChatScreen({ matchId }: { matchId: string }) {
         {convo && p && (
           <div className="mx-auto mb-5 max-w-[360px] rounded-[24px] bg-surface p-4 text-center shadow-[0_8px_24px_-14px_rgba(21,18,29,0.35)]">
             <div className="mx-auto flex w-fit -space-x-3">
-              <span className="relative flex size-14 items-center justify-center rounded-full bg-accent text-[15px] font-extrabold text-accent-ink ring-4 ring-surface">
+              <span className="relative flex size-14 items-center justify-center rounded-full bg-accent-strong text-[15px] font-extrabold text-white ring-4 ring-surface">
                 You
               </span>
               <span className="relative size-14 overflow-hidden rounded-full ring-4 ring-surface">
@@ -426,7 +426,7 @@ function Bubble({
         <span
           className={`px-3.5 py-2 text-[15.5px] leading-snug break-words whitespace-pre-wrap ${
             m.fromMe
-              ? `${mineShape} bg-gradient-to-br from-[#ec3f7c] to-[#d81e63] text-white shadow-[0_4px_12px_-6px_rgba(216,30,99,0.7)]`
+              ? `${mineShape} bg-gradient-to-br from-[#d81e63] to-[#b5164f] text-white shadow-[0_4px_12px_-6px_rgba(216,30,99,0.7)]`
               : `${theirShape} bg-surface text-ink shadow-[0_2px_8px_-4px_rgba(21,18,29,0.28)]`
           } ${sendState === "sending" ? "opacity-75" : ""}`}
         >

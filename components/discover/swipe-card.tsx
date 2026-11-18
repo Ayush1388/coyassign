@@ -115,9 +115,9 @@ export function SwipeCard({ profile, ref, onDecide, onExit, onBusyChange, onOpen
       <motion.div
         aria-hidden
         style={{ opacity: likeOpacity }}
-        className="pointer-events-none absolute top-6 left-5 -rotate-12 rounded-2xl border-(length:--bw) border-line bg-accent px-4 py-1.5 shadow-(--pop)"
+        className="pointer-events-none absolute top-6 left-5 -rotate-12 rounded-2xl border-(length:--bw) border-line bg-accent-strong px-4 py-1.5 shadow-(--pop)"
       >
-        <span className="display text-[30px] text-accent-ink">LIKE</span>
+        <span className="display text-[30px] text-white">LIKE</span>
       </motion.div>
       <motion.div
         aria-hidden

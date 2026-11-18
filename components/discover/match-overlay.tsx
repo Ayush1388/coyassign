@@ -66,13 +66,13 @@ export function MatchOverlay({ match, onClose }: { match: MatchDTO; onClose: () 
 
         <div className="relative mx-auto my-5 flex h-[132px] w-[236px] items-center justify-center">
           <motion.div
-            className="absolute left-0 size-[120px] -rotate-6 overflow-hidden rounded-[20px] border-(length:--bw) border-line bg-accent shadow-(--pop)"
+            className="absolute left-0 size-[120px] -rotate-6 overflow-hidden rounded-[20px] border-(length:--bw) border-line bg-accent-strong shadow-(--pop)"
             initial={reduce ? false : { x: -40, rotate: -20, opacity: 0 }}
             animate={{ x: 0, rotate: -6, opacity: 1 }}
             transition={{ type: "spring", stiffness: 260, damping: 18, delay: 0.05 }}
           >
             <div className="flex size-full items-center justify-center">
-              <span className="display text-[28px] text-accent-ink">You</span>
+              <span className="display text-[28px] text-white">You</span>
             </div>
           </motion.div>
           <motion.div

@@ -32,10 +32,10 @@ export function InterestChips({
             key={i}
             data-shared={isShared || undefined}
             className={`inline-flex items-center gap-1 rounded-full font-semibold ${pad} ${
-              isShared ? "bg-accent-soft text-ink ring-1 ring-accent/60" : "bg-soft"
+              "bg-soft"
             }`}
           >
-            {isShared && <Heart className="size-3 fill-accent text-ink" strokeWidth={2} aria-hidden />}
+            {isShared && <Heart className="size-3 fill-accent-strong text-accent-strong" strokeWidth={2} aria-hidden />}
             {i}
             {isShared && <span className="sr-only"> (you both like this)</span>}
           </li>

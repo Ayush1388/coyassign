@@ -80,9 +80,11 @@ export function ProfileSheet({
       </div>
 
       {profile.sharedInterests.length > 0 && (
-        <div className="mt-4 rounded-[20px] bg-accent-soft p-4 ring-2 ring-accent/40">
-          <p className="micro-label">In common</p>
-          <p className="display mt-1 text-[22px]">You both like {listInterests(profile.sharedInterests, 3)}</p>
+        <div className="mt-5 rounded-[20px] bg-soft p-4">
+          <p className="micro-label inline-flex items-center gap-1.5 text-accent-strong">
+            <Heart className="size-3.5 fill-current" aria-hidden /> In common
+          </p>
+          <p className="display mt-1.5 text-[22px]">You both like {listInterests(profile.sharedInterests, 3)}</p>
         </div>
       )}
 
@@ -90,9 +92,9 @@ export function ProfileSheet({
         const intent = intentOf(profile.intent);
         const life = [drinkingOf(profile.lifestyle.drinking), smokingOf(profile.lifestyle.smoking), workoutOf(profile.lifestyle.workout)].filter(Boolean);
         return (
-          <section className="mt-5 grid grid-cols-1 gap-2.5" aria-label="Looking for and lifestyle">
+          <section className="mt-5 grid grid-cols-1 gap-3" aria-label="Looking for and lifestyle">
             {intent && (
-              <div className={`flex items-center gap-3 rounded-[18px] p-3.5 ${profile.sameIntent ? "bg-accent-soft ring-2 ring-accent" : "bg-soft"}`}>
+              <div className="flex items-center gap-3 rounded-[18px] bg-soft p-4">
                 <span className="text-[26px] leading-none" aria-hidden>
                   {intent.emoji}
                 </span>

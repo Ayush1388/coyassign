@@ -23,16 +23,17 @@ export function TabBar() {
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`focus-ring flex h-14 flex-col items-center justify-center gap-0.5 rounded-[18px] text-[13px] font-bold transition-colors duration-150 ${
-                  active ? "bg-accent-soft text-ink" : "text-muted hover:bg-soft hover:text-ink"
+                className={`focus-ring relative flex h-14 flex-col items-center justify-center gap-0.5 rounded-[18px] text-[13px] font-bold transition-colors duration-150 ${
+                  active ? "text-accent-strong" : "text-muted hover:bg-soft hover:text-ink"
                 }`}
               >
                 <Icon
-                  className={`size-[22px] ${active ? "fill-accent text-accent-strong" : ""}`}
+                  className={`size-[22px] ${active ? "fill-accent-strong text-accent-strong" : ""}`}
                   strokeWidth={active ? 2.4 : 2}
                   aria-hidden
                 />
                 {label}
+                {active && <span aria-hidden className="absolute top-0 h-[3px] w-8 rounded-full bg-accent-strong" />}
               </Link>
             </li>
           );

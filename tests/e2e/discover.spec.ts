@@ -364,7 +364,7 @@ test("Liked cards show what you share and open the full profile", async ({ page 
   await page.goto("/discover/liked");
   const card = page.locator(`[data-testid=liked-item][data-profile-id="${target.id}"]`);
   await expect(card.getByTestId("card-shared-line")).toContainText("You both like");
-  await card.click();
+  await card.getByRole("button", { name: /Open .*'s profile/ }).first().click();
   await expect(page.getByTestId("profile-sheet")).toBeVisible();
   await expect(page.getByTestId("profile-sheet")).toContainText("only find out if they like you back");
 });
@@ -382,4 +382,48 @@ test("Matches cards show what you share and go straight to the chat", async ({ p
   await first.getByTestId("match-chat").click();
   await expect(page).toHaveURL(/\/discover\/matches\/match_/);
   await expect(page.getByTestId("composer")).toBeVisible();
+});
+
+test("notifications are their own panel: new matches and texts, separate from Chats", async ({ page }) => {
+  for (const p of (await apiFeed(page)).slice(0, 10))
+    await page.request.post("/api/swipe", { data: { profileId: p.id, action: "LIKE" } });
+  const matches = (await (await page.request.get("/api/matches")).json()).matches as { id: string; profile: { name: string } }[];
+  expect(matches.length).toBeGreaterThan(1);
+
+  // Text the first match; their reply arrives a few seconds later.
+  await page.request.post(`/api/matches/${matches[0].id}/messages`, { data: { body: "hey!" } });
+  await expect
+    .poll(async () => ((await (await page.request.get(`/api/matches/${matches[0].id}/messages`)).json()).messages as unknown[]).length, {
+      timeout: 10_000,
+    })
+    .toBe(2);
+
+  await page.goto("/discover");
+  const bell = page.getByTestId("bell");
+  await expect(page.getByTestId("bell-count")).toHaveText(String(matches.length)); // 1 text + the rest are new matches
+  await bell.click();
+  const panel = page.getByTestId("notifications-sheet");
+  await expect(panel).toBeVisible();
+  await expect(panel.locator('[data-kind="message"]')).toHaveCount(1);
+  await expect(panel.locator('[data-kind="message"]')).toContainText("texted you");
+  await expect(panel.locator('[data-kind="match"]')).toHaveCount(matches.length - 1);
+  await expect(panel.locator('[data-kind="match"]').first()).toContainText("You matched with");
+  // It is not the Chats page.
+  await expect(page).toHaveURL(/\/discover$/);
+
+  await panel.locator('[data-kind="message"]').click();
+  await expect(page).toHaveURL(/\/discover\/matches\/match_/);
+});
+
+test("Chats lists Messages first, then New matches below", async ({ page }) => {
+  for (const p of (await apiFeed(page)).slice(0, 10))
+    await page.request.post("/api/swipe", { data: { profileId: p.id, action: "LIKE" } });
+  const [first] = (await (await page.request.get("/api/matches")).json()).matches as { id: string }[];
+  await page.request.post(`/api/matches/${first.id}/messages`, { data: { body: "hey!" } });
+  await page.goto("/discover/chats");
+  await expect(page.getByTestId("chat-item")).toHaveCount(1);
+  await expect(page.getByTestId("new-match").first()).toBeVisible();
+  const messagesY = (await page.getByTestId("conversations").boundingBox())!.y;
+  const newMatchesY = (await page.getByTestId("new-matches").boundingBox())!.y;
+  expect(messagesY).toBeLessThan(newMatchesY);
 });

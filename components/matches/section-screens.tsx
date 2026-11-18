@@ -52,7 +52,7 @@ function Frame({
   const { counts } = useCounts();
   return (
     <>
-      <AppHeader attention={counts ? counts.yourTurn + counts.newMatches : 0} />
+      <AppHeader />
       <SectionTabs active={section} counts={counts} />
       <div className="px-5 pt-4 pb-4">
         <h1 className="font-serif text-[34px] leading-[1.02]">{title}</h1>
@@ -138,16 +138,11 @@ export function MatchesScreen() {
                 <PersonCard
                   testId="match-item"
                   profile={profile}
-                  accent={theirTurn}
                   onOpen={() => setOpen(profile)}
                   footer={
                     m.lastMessage ? (
                       <p className="flex min-w-0 items-center gap-1.5 text-[13px]">
-                        {theirTurn && (
-                          <span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-[10.5px] font-extrabold tracking-[0.04em] uppercase">
-                            Your turn
-                          </span>
-                        )}
+                        {theirTurn && <YourTurn />}
                         <span className={`truncate ${theirTurn ? "font-bold" : "text-muted"}`}>
                           {m.lastMessage.fromMe ? "You: " : ""}
                           {m.lastMessage.body}
@@ -163,7 +158,7 @@ export function MatchesScreen() {
                     <Link
                       href={`/discover/matches/${m.id}`}
                       data-testid="match-chat"
-                      className="pill-primary focus-ring h-10 w-full text-[14px]"
+                      className={chatButton(!m.lastMessage || theirTurn)}
                     >
                       <MessageCircle className="size-4" aria-hidden />
                       {m.lastMessage ? (theirTurn ? "Reply" : "Open chat") : "Say hi"}
@@ -179,6 +174,22 @@ export function MatchesScreen() {
     </Frame>
   );
 }
+
+/** "Your turn": plain deep-pink text with a dot. No fill, so there's no dark-on-pink. */
+function YourTurn() {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1.5 text-[12px] font-extrabold text-accent-strong">
+      <span aria-hidden className="size-1.5 rounded-full bg-accent-strong" />
+      Your turn
+    </span>
+  );
+}
+
+/** Flat, squared chat button. Deep pink + white only when a reply/hello is due, otherwise quiet grey. */
+const chatButton = (primary: boolean) =>
+  `focus-ring inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-[12px] px-4 text-[14px] font-bold transition-[background-color,transform] duration-150 active:scale-[0.98] ${
+    primary ? "bg-accent-strong text-white hover:brightness-95" : "bg-soft text-ink hover:bg-hairline"
+  }`;
 
 const CardsSkeleton = () => (
   <div className="space-y-3" role="status" aria-label="Loading">
@@ -287,8 +298,70 @@ export function ChatsScreen() {
       )}
       {state.status === "error" && <ErrorBox message={state.message} onRetry={() => void reload()} />}
 
+      {convos.length > 0 && (
+        <section aria-label="Messages">
+          <h2 className="micro-label mb-3 text-muted">Messages</h2>
+          <ul className="flex flex-col gap-2.5" data-testid="conversations">
+          {convos.map((m: MatchDTO) => {
+            const last = m.lastMessage!;
+            const theirTurn = !last.fromMe;
+            return (
+              <li key={m.id}>
+                <Link
+                  href={`/discover/matches/${m.id}`}
+                  data-testid="chat-item"
+                  data-profile-id={m.profile.id}
+                  className="focus-ring flex items-center gap-3 rounded-[20px] bg-soft p-3 transition-colors hover:bg-hairline"
+                >
+                  <span className="relative size-14 shrink-0 overflow-hidden rounded-full">
+                    <Photo src={m.profile.photoUrl} name={m.profile.name} className="absolute inset-0 size-full" eager />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5">
+                      <span className="truncate text-[16px] font-extrabold">{m.profile.name}</span>
+                      {m.profile.verified && <VerifiedBadge className="size-4" />}
+                      <span className="ml-auto shrink-0 text-[12px] font-semibold text-muted">{timeAgo(last.createdAt)}</span>
+                    </span>
+                    <span className={`mt-0.5 block truncate text-[14px] ${theirTurn ? "font-bold text-ink" : "text-muted"}`}>
+                      {last.fromMe ? "You: " : ""}
+                      {last.body}
+                    </span>
+                    {theirTurn && (
+                      <span className="mt-1 block">
+                        <YourTurn />
+                      </span>
+                    )}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+          </ul>
+        </section>
+      )}
+
+      {state.status === "ready" && convos.length === 0 && (
+        <Empty
+          testId="chats-empty"
+          emoji="💬"
+          title="No chats yet"
+          body={
+            fresh.length
+              ? "Pick a new match below. We'll suggest an opener based on what you both like."
+              : "Match with someone to start chatting. Only mutual matches can message each other."
+          }
+          cta={
+            fresh.length ? null : (
+              <Link href="/discover" className="btn-primary pressable focus-ring mt-3">
+                Discover people
+              </Link>
+            )
+          }
+        />
+      )}
+
       {fresh.length > 0 && (
-        <div className="mb-6">
+        <section aria-label="New matches" className={convos.length > 0 ? "mt-9" : "mt-6"}>
           <h2 className="micro-label text-muted">New matches · say hi</h2>
           <ul className="mt-3 flex flex-col gap-2.5" data-testid="new-matches">
             {fresh.map((m) => (
@@ -314,75 +387,14 @@ export function ChatsScreen() {
                         : "You matched. Say hi!"}
                     </span>
                   </span>
-                  <span className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full bg-accent-soft px-3 text-[13px] font-extrabold text-ink">
-                    <MessageCircle className="size-3.5" aria-hidden /> Say hi
+                  <span className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[10px] bg-soft px-3 text-[13px] font-bold text-ink">
+                    <MessageCircle className="size-3.5 text-accent-strong" aria-hidden /> Say hi
                   </span>
                 </Link>
               </li>
             ))}
           </ul>
-        </div>
-      )}
-
-      {convos.length > 0 && <h2 className="micro-label mb-3 text-muted">Messages</h2>}
-
-      {state.status === "ready" && convos.length === 0 && (
-        <Empty
-          testId="chats-empty"
-          emoji="💬"
-          title="No chats yet"
-          body={
-            fresh.length
-              ? "Pick a new match above. We'll suggest an opener based on what you both like."
-              : "Match with someone to start chatting. Only mutual matches can message each other."
-          }
-          cta={
-            fresh.length ? null : (
-              <Link href="/discover" className="btn-primary pressable focus-ring mt-3">
-                Discover people
-              </Link>
-            )
-          }
-        />
-      )}
-
-      {convos.length > 0 && (
-        <ul className="flex flex-col gap-2.5" data-testid="conversations">
-          {convos.map((m: MatchDTO) => {
-            const last = m.lastMessage!;
-            const theirTurn = !last.fromMe;
-            return (
-              <li key={m.id}>
-                <Link
-                  href={`/discover/matches/${m.id}`}
-                  data-testid="chat-item"
-                  data-profile-id={m.profile.id}
-                  className="focus-ring flex items-center gap-3 rounded-[20px] bg-soft p-3 transition-colors hover:bg-hairline"
-                >
-                  <span className="relative size-14 shrink-0 overflow-hidden rounded-full border-(length:--bw) border-line">
-                    <Photo src={m.profile.photoUrl} name={m.profile.name} className="absolute inset-0 size-full" eager />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-1.5">
-                      <span className="truncate text-[16px] font-extrabold">{m.profile.name}</span>
-                      {m.profile.verified && <VerifiedBadge className="size-4" />}
-                      <span className="ml-auto shrink-0 text-[12px] font-semibold text-muted">{timeAgo(last.createdAt)}</span>
-                    </span>
-                    <span className={`mt-0.5 block truncate text-[14px] ${theirTurn ? "font-bold text-ink" : "text-muted"}`}>
-                      {last.fromMe ? "You: " : ""}
-                      {last.body}
-                    </span>
-                    {theirTurn && (
-                      <span className="micro-label mt-1 inline-block rounded-full bg-accent-soft px-2 py-0.5 text-[10px] text-ink">
-                        Your turn
-                      </span>
-                    )}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        </section>
       )}
     </Frame>
   );

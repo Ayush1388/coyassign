@@ -83,7 +83,7 @@ export function ProfileCard({
           {profile.sharedInterests.length > 0 && (
             <span
               data-testid="card-shared"
-              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/40 bg-accent px-3 text-[13px] font-extrabold text-accent-ink"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/40 bg-accent-strong px-3 text-[13px] font-extrabold text-white"
             >
               <Heart className="size-3.5 fill-current" aria-hidden />
               {profile.sharedInterests.length} in common
@@ -120,9 +120,7 @@ export function ProfileCard({
           {intent && (
             <span
               data-testid="card-intent"
-              className={`inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[12px] font-bold ${
-                profile.sameIntent ? "bg-accent text-accent-ink" : "glass"
-              }`}
+              className="glass inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[12px] font-bold"
               title={profile.sameIntent ? "Looking for the same thing as you" : `Looking for: ${intent.label}`}
             >
               <span aria-hidden>{intent.emoji}</span> {intent.short}
@@ -143,7 +141,7 @@ export function ProfileCard({
                   key={i}
                   data-shared={isShared || undefined}
                   className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold ${
-                    isShared ? "border border-white/50 bg-accent text-accent-ink" : "glass"
+                    isShared ? "border border-white/50 bg-accent-strong text-white" : "glass"
                   }`}
                 >
                   <Icon className="size-3.5" aria-hidden />

@@ -16,7 +16,7 @@
   --hairline: #ece9f2;
   --line: #15121d;
   --accent: #ff3d81;
-  --accent-ink: #15121d; /* Coy puts ink on pink: ~6:1 contrast vs ~3.4:1 for white */
+  --accent-ink: #ffffff; /* Text on pink is always white, and pink fills always use --accent-strong (white on it = 4.9:1) */
   --accent-strong: #d81e63;
   --accent-soft: #ffe4ef;
   --ok: #0e8f48;
@@ -158,7 +158,7 @@ body {
   }
 }
 
-/* Primary CTA: Coy's pink pill with ink label. */
+/* Primary CTA: deep pink with a white label. No outline, no hard shadow. */
 @utility btn-primary {
   display: inline-flex;
   align-items: center;
@@ -167,13 +167,20 @@ body {
   min-height: 54px;
   padding: 0 24px;
   border-radius: 999px;
-  border: var(--bw) solid var(--line);
-  box-shadow: var(--pop);
-  background: var(--accent);
-  color: var(--accent-ink);
+  background: linear-gradient(180deg, var(--accent-strong), color-mix(in srgb, var(--accent-strong) 86%, black));
+  color: #fff;
+  box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--accent-strong) 85%, transparent);
   font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s;
+  &:hover {
+    filter: brightness(1.04);
+  }
+  &:active {
+    transform: scale(0.98);
+  }
 }
 
 @utility btn-secondary {
@@ -184,13 +191,22 @@ body {
   min-height: 54px;
   padding: 0 24px;
   border-radius: 999px;
-  border: var(--bw) solid var(--line);
-  box-shadow: var(--pop);
   background: var(--surface);
   color: var(--ink);
+  box-shadow:
+    0 0 0 1px var(--hairline),
+    0 8px 18px -12px rgba(21, 18, 29, 0.3);
   font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s;
+  &:hover {
+    background: var(--soft);
+  }
+  &:active {
+    transform: scale(0.98);
+  }
 }
 
 /* Utility icon button: soft circle, no edge, no pop (like Coy's settings gear). */
@@ -235,11 +251,11 @@ body {
 
 /* Pink gradient fill with a soft glow (primary pill tab, big Like button). */
 @utility pink-glow {
-  background: linear-gradient(180deg, #ff6aa0 0%, var(--accent) 55%, #f02a70 100%);
-  color: var(--accent-ink);
+  background: linear-gradient(180deg, var(--accent-strong), color-mix(in srgb, var(--accent-strong) 86%, black));
+  color: #fff;
   box-shadow:
-    0 10px 24px -8px color-mix(in srgb, var(--accent) 70%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    0 10px 24px -10px color-mix(in srgb, var(--accent-strong) 80%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 /* Floating action button: soft layered shadow, hairline ring, lift on hover, spring on press. */
@@ -320,7 +336,7 @@ body {
 
 /* ---------- Filter controls ---------- */
 
-/* Borderless primary pill (sheets): pink gradient, ink label for contrast. */
+/* Borderless primary pill (sheets): deep pink gradient, white label. */
 @utility pill-primary {
   display: inline-flex;
   align-items: center;
@@ -330,12 +346,12 @@ body {
   padding: 0 22px;
   font-size: 16px;
   font-weight: 800;
-  color: var(--accent-ink);
-  background: linear-gradient(180deg, #ff6aa0 0%, var(--accent) 60%, #f02a70 100%);
-  box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--accent) 80%, transparent);
+  color: #fff;
+  background: linear-gradient(180deg, var(--accent-strong), color-mix(in srgb, var(--accent-strong) 86%, black));
+  box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--accent-strong) 85%, transparent);
   transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s;
   &:hover {
-    box-shadow: 0 14px 28px -10px color-mix(in srgb, var(--accent) 90%, transparent);
+    box-shadow: 0 14px 28px -12px color-mix(in srgb, var(--accent-strong) 95%, transparent);
   }
   &:active {
     transform: scale(0.98);

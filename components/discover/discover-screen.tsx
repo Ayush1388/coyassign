@@ -160,11 +160,10 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
 
   const filterCount = filters ? activeCount(filters) : 0;
   const filtered = filterCount > 0;
-  const attention = counts ? counts.yourTurn + counts.newMatches : 0;
 
   return (
     <>
-      <AppHeader attention={attention} />
+      <AppHeader />
       <SectionTabs active="discover" counts={counts} />
 
       {/* Hero line */}
@@ -283,7 +282,7 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -8, transition: { duration: 0.12 } }}
                   className={`absolute top-14 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border-(length:--bw) border-line px-4 py-2 text-[14px] font-bold whitespace-nowrap shadow-(--pop) ${
-                    toast.tone === "like" ? "bg-accent text-accent-ink" : "bg-surface text-ink"
+                    toast.tone === "like" ? "bg-accent-strong text-white" : "bg-surface text-ink"
                   }`}
                   role={toast.tone === "error" ? "alert" : "status"}
                   data-testid="toast"
@@ -354,7 +353,7 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
             <span
               aria-hidden
               data-testid="filter-count"
-              className="absolute -top-1 -right-1 min-w-[20px] rounded-full border-2 border-surface bg-accent px-1 text-center text-[11px] leading-[16px] font-extrabold text-accent-ink"
+              className="absolute -top-1 -right-1 min-w-[20px] rounded-full border-2 border-surface bg-accent-strong px-1 text-center text-[11px] leading-[16px] font-extrabold text-white"
             >
               {filterCount}
             </span>
