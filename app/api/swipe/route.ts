@@ -1,6 +1,6 @@
 import { CURRENT_USER_ID } from "@/lib/auth";
 import { getDb } from "@/lib/db/client";
-import { apiError, internalError, json } from "@/lib/http";
+import { apiError, internalError, json, readJsonBody } from "@/lib/http";
 import { recordSwipe, SwipeError } from "@/lib/services/swipe";
 import { swipeInputSchema } from "@/lib/validation";
 
@@ -8,12 +8,9 @@ export const dynamic = "force-dynamic";
 
 /** POST /api/swipe (also /swipe) with body { profileId, action: "LIKE" | "PASS" }. */
 export async function POST(request: Request) {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return apiError(400, "INVALID_INPUT", "Request body must be valid JSON.");
-  }
+  const read = await readJsonBody(request);
+  if ("error" in read) return read.error;
+  const body = read.body;
 
   const parsed = swipeInputSchema.safeParse(body);
   if (!parsed.success) {

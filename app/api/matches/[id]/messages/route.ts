@@ -1,6 +1,6 @@
 import { CURRENT_USER_ID } from "@/lib/auth";
 import { getDb } from "@/lib/db/client";
-import { apiError, internalError, json } from "@/lib/http";
+import { apiError, internalError, json, readJsonBody } from "@/lib/http";
 import { ChatError, getConversation, sendMessage } from "@/lib/services/chat";
 import { matchIdSchema, messageInputSchema } from "@/lib/validation";
 
@@ -27,12 +27,9 @@ export async function POST(request: Request, { params }: Ctx) {
   const id = matchIdSchema.safeParse((await params).id);
   if (!id.success) return notFound();
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return apiError(400, "INVALID_INPUT", "Request body must be valid JSON.");
-  }
+  const read = await readJsonBody(request);
+  if ("error" in read) return read.error;
+  const body = read.body;
   const parsed = messageInputSchema.safeParse(body);
   if (!parsed.success) return apiError(400, "INVALID_INPUT", parsed.error.issues[0]?.message ?? "Invalid message.");
 

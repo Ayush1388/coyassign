@@ -461,3 +461,16 @@ test("white text always has a solid pink background behind it (bubbles and the l
   await expect(bubble).toHaveCSS("color", "rgb(255, 255, 255)");
   await expect(bubble).toHaveCSS("background-color", "rgb(216, 30, 99)");
 });
+
+test("responses carry security headers and no framework banner", async ({ page, request }) => {
+  const res = await page.goto("/discover");
+  const h = res!.headers();
+  expect(h["x-content-type-options"]).toBe("nosniff");
+  expect(h["x-frame-options"]).toBe("DENY");
+  expect(h["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+  expect(h["content-security-policy"]).toContain("frame-ancestors 'none'");
+  expect(h["x-powered-by"]).toBeUndefined();
+  const api = await request.get("/api/feed");
+  expect(api.headers()["cache-control"]).toBe("no-store");
+  expect(api.headers()["x-content-type-options"]).toBe("nosniff");
+});

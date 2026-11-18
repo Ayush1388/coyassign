@@ -108,6 +108,20 @@ describe("POST /api/swipe", () => {
     expect((await res.json()).error.code).toBe("NOT_FOUND");
   });
 
+  it("rejects non-JSON content types with 415 and writes nothing (CSRF defence)", async () => {
+    const res = await swipeRoute(
+      new Request("http://test/api/swipe", {
+        method: "POST",
+        headers: { "content-type": "text/plain" },
+        body: JSON.stringify({ profileId: LIKERS[0], action: "LIKE" }),
+      }),
+    );
+    expect(res.status).toBe(415);
+    expect((await res.json()).error.code).toBe("UNSUPPORTED_MEDIA_TYPE");
+    expect((await matches()).matches).toEqual([]);
+    expect((await feed()).profiles.map((p) => p.id)).toContain(LIKERS[0]); // still swipeable
+  });
+
   it.each([
     ["malformed JSON", "{not json"],
     ["bad action", { profileId: "p01", action: "MAYBE" }],
