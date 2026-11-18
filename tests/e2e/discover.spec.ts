@@ -122,6 +122,8 @@ test("mutual like shows It's a match and appears in Matches", async ({ page }) =
   await expect(overlay(page).getByRole("heading", { name: "It's a match!" })).toBeVisible();
   // Pop-up text is white (on a dark card), never black.
   await expect(overlay(page).getByRole("heading", { name: "It's a match!" })).toHaveCSS("color", "rgb(255, 255, 255)");
+  // Opening it must not draw a focus ring around a button.
+  await expect(overlay(page).getByTestId("send-message")).toHaveCSS("outline-style", "none");
   await expect(overlay(page)).toContainText(matchedName!);
   await expect(page.getByTestId("match-count")).toHaveText("1");
 
