@@ -1,7 +1,7 @@
 import { and, desc, eq, lte, or, sql } from "drizzle-orm";
 import type { DB } from "../db/client";
 import { matches, messages, users } from "../db/schema";
-import { sharedWith, toMatchProfile, type MatchDTO } from "../dto";
+import { sharedWith, toMatchProfile, toPublicProfile, type MatchDTO } from "../dto";
 import { getViewer } from "./feed";
 
 /**
@@ -38,6 +38,7 @@ export async function getMatches(db: DB, userId: string, now = new Date()): Prom
       sharedInterests: sharedWith(viewer, other),
       lastMessage: last ? { body: last.body, fromMe: last.senderId === userId, createdAt: last.deliverAt } : null,
       yourTurn: !last || last.senderId !== userId,
+      details: toPublicProfile(other, viewer),
     });
   }
 

@@ -1,14 +1,13 @@
 "use client";
 
-import { Heart, Hourglass, MapPin, MessageCircle } from "lucide-react";
+import { Hourglass, MessageCircle, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError, type MatchDTO, type PublicProfile } from "@/lib/api";
-import { formatDay, listInterests, shortDistance, timeAgo } from "@/lib/format";
-import { intentOf } from "@/lib/profile-options";
-import { InterestChips } from "@/components/discover/interest-chips";
+import { formatDay, timeAgo } from "@/lib/format";
 import { ProfileSheet } from "@/components/discover/profile-sheet";
+import { PersonCard } from "./person-card";
 import { AppHeader } from "@/components/nav/app-header";
 import { VerifiedBadge } from "@/components/discover/profile-card";
 import { SectionTabs, type Section } from "@/components/discover/section-tabs";
@@ -89,89 +88,14 @@ function Empty({ emoji, title, body, cta, testId }: { emoji: string; title: stri
   );
 }
 
-const GridSkeleton = () => (
-  <ul className="grid grid-cols-2 gap-4" role="status" aria-label="Loading">
-    {[0, 1, 2, 3].map((i) => (
-      <li key={i} className="aspect-[3/4] animate-pulse rounded-[22px] bg-soft" />
-    ))}
-  </ul>
-);
-
-/** A photo tile with name over a scrim, like a mini Discover card. */
-function PersonTile({
-  href,
-  photoUrl,
-  name,
-  age,
-  verified,
-  badge,
-  footer,
-  testId,
-  profileId,
-  index,
-}: {
-  href?: string;
-  photoUrl: string | null;
-  name: string;
-  age: number;
-  verified: boolean;
-  badge?: React.ReactNode;
-  footer: React.ReactNode;
-  testId: string;
-  profileId: string;
-  index: number;
-}) {
-  const body = (
-    <>
-      <Photo src={photoUrl} name={name} className="absolute inset-0 size-full" eager />
-      <span aria-hidden className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-[#120d17] via-[#120d17]/70 to-transparent" />
-      {badge && <span className="absolute top-2.5 left-2.5">{badge}</span>}
-      <span className="absolute inset-x-3 bottom-3 flex flex-col gap-0.5 text-white">
-        <span className="flex items-center gap-1 text-[19px] leading-tight font-extrabold">
-          <span className="truncate">
-            {name}, {age}
-          </span>
-          {verified && <VerifiedBadge className="size-[18px] shrink-0" onPhoto />}
-        </span>
-        <span className="text-[12px] font-bold text-white/85">{footer}</span>
-      </span>
-    </>
-  );
-  const cls =
-    "relative block aspect-[3/4] overflow-hidden rounded-[22px] border-(length:--bw) border-line bg-ink shadow-(--pop)";
-  return (
-    <motion.li
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index, 8) * 0.04, duration: 0.25, ease: "easeOut" }}
-    >
-      {href ? (
-        <Link href={href} data-testid={testId} data-profile-id={profileId} className={`${cls} pressable focus-ring`}>
-          {body}
-        </Link>
-      ) : (
-        <div data-testid={testId} data-profile-id={profileId} className={cls}>
-          {body}
-        </div>
-      )}
-    </motion.li>
-  );
-}
-
-const sharedBadge = (n: number) =>
-  n > 0 ? (
-    <span className="inline-flex h-7 items-center gap-1 rounded-full border border-white/50 bg-accent px-2.5 text-[12px] font-extrabold text-accent-ink">
-      <Heart className="size-3 fill-current" aria-hidden /> {n} in common
-    </span>
-  ) : null;
-
 /* ---------------------------------------------------------------- Matches */
 
 const fetchMatches = () => api.matches();
 
-/** Every mutual match. Tap one to chat. One-sided likes never appear here. */
+/** Every mutual match as a rich card: what you share, what they're after, and where the chat stands. */
 export function MatchesScreen() {
   const { state, reload } = useLive(fetchMatches);
+  const [open, setOpen] = useState<PublicProfile | null>(null);
   const list = state.status === "ready" ? state.data : [];
   return (
     <Frame
@@ -183,7 +107,7 @@ export function MatchesScreen() {
       }
       subtitle="Only people who liked you back. One-sided likes never show up."
     >
-      {state.status === "loading" && <GridSkeleton />}
+      {state.status === "loading" && <CardsSkeleton />}
       {state.status === "error" && <ErrorBox message={state.message} onRetry={() => void reload()} />}
       {state.status === "ready" && list.length === 0 && (
         <Empty
@@ -192,46 +116,77 @@ export function MatchesScreen() {
           title="No matches yet"
           body="When someone you like likes you back, they'll appear here. One-sided likes always stay secret."
           cta={
-            <Link href="/discover" className="btn-primary pressable focus-ring mt-3">
+            <Link href="/discover" className="pill-primary focus-ring mt-3 h-12">
               Start discovering
             </Link>
           }
         />
       )}
       {list.length > 0 && (
-        <ul className="grid grid-cols-2 gap-4" data-testid="matches-list">
-          {list.map((m, i) => (
-            <PersonTile
-              key={m.id}
-              index={i}
-              href={`/discover/matches/${m.id}`}
-              testId="match-item"
-              profileId={m.profile.id}
-              photoUrl={m.profile.photoUrl}
-              name={m.profile.name}
-              age={m.profile.age}
-              verified={m.profile.verified}
-              badge={sharedBadge(m.sharedInterests.length)}
-              footer={
-                m.lastMessage ? (
-                  m.lastMessage.fromMe ? (
-                    "Chatting"
-                  ) : (
-                    <span className="text-[#ff9cc0]">Your turn</span>
-                  )
-                ) : (
-                  <span className="inline-flex items-center gap-1">
-                    <MessageCircle className="size-3" aria-hidden /> Say hi · {formatDay(m.createdAt)}
-                  </span>
-                )
-              }
-            />
-          ))}
+        <ul className="flex flex-col gap-3.5" data-testid="matches-list">
+          {list.map((m, i) => {
+            const theirTurn = !!m.lastMessage && !m.lastMessage.fromMe;
+            const profile = m.details;
+            if (!profile) return null;
+            return (
+              <motion.li
+                key={m.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(i, 8) * 0.04, duration: 0.25, ease: "easeOut" }}
+              >
+                <PersonCard
+                  testId="match-item"
+                  profile={profile}
+                  accent={theirTurn}
+                  onOpen={() => setOpen(profile)}
+                  footer={
+                    m.lastMessage ? (
+                      <p className="flex min-w-0 items-center gap-1.5 text-[13px]">
+                        {theirTurn && (
+                          <span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-[10.5px] font-extrabold tracking-[0.04em] uppercase">
+                            Your turn
+                          </span>
+                        )}
+                        <span className={`truncate ${theirTurn ? "font-bold" : "text-muted"}`}>
+                          {m.lastMessage.fromMe ? "You: " : ""}
+                          {m.lastMessage.body}
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="inline-flex items-center gap-1 text-[12px] font-semibold text-muted">
+                        <Sparkles className="size-3.5 text-accent-strong" aria-hidden /> New match · {formatDay(m.createdAt)}
+                      </p>
+                    )
+                  }
+                  actions={
+                    <Link
+                      href={`/discover/matches/${m.id}`}
+                      data-testid="match-chat"
+                      className="pill-primary focus-ring h-10 w-full text-[14px]"
+                    >
+                      <MessageCircle className="size-4" aria-hidden />
+                      {m.lastMessage ? (theirTurn ? "Reply" : "Open chat") : "Say hi"}
+                    </Link>
+                  }
+                />
+              </motion.li>
+            );
+          })}
         </ul>
       )}
+      <ProfileSheet profile={open} open={!!open} onClose={() => setOpen(null)} note="It's mutual. You can message each other." />
     </Frame>
   );
 }
+
+const CardsSkeleton = () => (
+  <div className="space-y-3" role="status" aria-label="Loading">
+    {[0, 1, 2].map((i) => (
+      <div key={i} className="h-[178px] animate-pulse rounded-[24px] bg-soft" />
+    ))}
+  </div>
+);
 
 /* ------------------------------------------------------------------ Liked */
 
@@ -255,13 +210,7 @@ export function LikedScreen() {
       }
       subtitle="They only find out if they like you back. Then it's a match."
     >
-      {state.status === "loading" && (
-        <div className="space-y-3" role="status" aria-label="Loading">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="h-[168px] animate-pulse rounded-[24px] bg-soft" />
-          ))}
-        </div>
-      )}
+      {state.status === "loading" && <CardsSkeleton />}
       {state.status === "error" && <ErrorBox message={state.message} onRetry={() => void reload()} />}
       {state.status === "ready" && list.length === 0 && (
         <Empty
@@ -285,7 +234,16 @@ export function LikedScreen() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: Math.min(i, 8) * 0.04, duration: 0.25, ease: "easeOut" }}
             >
-              <LikedCard profile={p} onOpen={() => setOpen(p)} />
+              <PersonCard
+                testId="liked-item"
+                profile={p}
+                onOpen={() => setOpen(p)}
+                footer={
+                  <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-muted">
+                    <Hourglass className="size-3" aria-hidden /> Waiting on them · only you can see this
+                  </span>
+                }
+              />
             </motion.li>
           ))}
         </ul>
@@ -297,74 +255,6 @@ export function LikedScreen() {
         note="You liked them. They'll only find out if they like you back."
       />
     </Frame>
-  );
-}
-
-function LikedCard({ profile: p, onOpen }: { profile: PublicProfile; onOpen: () => void }) {
-  const intent = intentOf(p.intent);
-  const distance = shortDistance(p.distanceKm);
-  const photos = p.photos.length ? p.photos : [p.photoUrl];
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      data-testid="liked-item"
-      data-profile-id={p.id}
-      className="focus-ring group flex w-full gap-3.5 rounded-[24px] bg-surface p-3 text-left shadow-[0_0_0_1px_var(--hairline),0_10px_24px_-16px_rgba(21,18,29,0.35)] transition-shadow hover:shadow-[0_0_0_1px_var(--hairline),0_16px_30px_-16px_rgba(21,18,29,0.45)]"
-    >
-      <span className="relative w-[112px] shrink-0">
-        <span className="relative block aspect-[3/4] overflow-hidden rounded-[18px] bg-soft">
-          <Photo src={photos[0] ?? null} name={p.name} className="absolute inset-0 size-full transition-transform duration-300 group-hover:scale-[1.03]" eager />
-        </span>
-        {photos.length > 1 && (
-          <span className="mt-1.5 flex gap-1" aria-label={`${photos.length} photos`}>
-            {photos.slice(1, 3).map((src) => (
-              <span key={src} className="relative block aspect-square flex-1 overflow-hidden rounded-[10px] bg-soft">
-                <Photo src={src} name={p.name} className="absolute inset-0 size-full" />
-              </span>
-            ))}
-          </span>
-        )}
-      </span>
-
-      <span className="flex min-w-0 flex-1 flex-col gap-1.5 py-0.5">
-        <span className="flex items-center gap-1.5">
-          <span className="truncate text-[19px] font-extrabold tracking-[-0.02em]">
-            {p.name}, {p.age}
-          </span>
-          {p.verified && <VerifiedBadge className="size-[18px] shrink-0" />}
-        </span>
-        <span className="flex items-center gap-1 truncate text-[13px] font-semibold text-muted">
-          <MapPin className="size-3.5 shrink-0" aria-hidden />
-          {distance ? `${distance} · ` : ""}
-          {p.city}
-        </span>
-        {intent && (
-          <span
-            className={`inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-bold ${
-              p.sameIntent ? "bg-accent text-accent-ink" : "bg-soft"
-            }`}
-          >
-            <span aria-hidden>{intent.emoji}</span> {intent.label}
-            {p.sameIntent && <span className="font-semibold"> · same as you</span>}
-          </span>
-        )}
-        {p.sharedInterests.length > 0 ? (
-          <span className="inline-flex items-center gap-1 text-[13px] font-bold text-accent-strong" data-testid="liked-shared">
-            <Heart className="size-3.5 fill-current" aria-hidden />
-            You both like {listInterests(p.sharedInterests, 2)}
-          </span>
-        ) : (
-          <span className="text-[13px] font-semibold text-muted">Nothing in common yet: ask about {p.interests[0] ?? "them"}!</span>
-        )}
-        <span className="mt-0.5">
-          <InterestChips interests={p.interests} shared={p.sharedInterests} max={3} size="sm" />
-        </span>
-        <span className="mt-auto inline-flex items-center gap-1 pt-1 text-[11.5px] font-semibold text-muted">
-          <Hourglass className="size-3" aria-hidden /> Waiting on them · only you can see this
-        </span>
-      </span>
-    </button>
   );
 }
 

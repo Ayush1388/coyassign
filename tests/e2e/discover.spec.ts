@@ -363,8 +363,23 @@ test("Liked cards show what you share and open the full profile", async ({ page 
   test.skip(matched, "picked a seeded liker; covered elsewhere");
   await page.goto("/discover/liked");
   const card = page.locator(`[data-testid=liked-item][data-profile-id="${target.id}"]`);
-  await expect(card.getByTestId("liked-shared")).toContainText("You both like");
+  await expect(card.getByTestId("card-shared-line")).toContainText("You both like");
   await card.click();
   await expect(page.getByTestId("profile-sheet")).toBeVisible();
   await expect(page.getByTestId("profile-sheet")).toContainText("only find out if they like you back");
+});
+
+test("Matches cards show what you share and go straight to the chat", async ({ page }) => {
+  for (const p of (await apiFeed(page)).slice(0, 10))
+    await page.request.post("/api/swipe", { data: { profileId: p.id, action: "LIKE" } });
+  await page.goto("/discover/matches");
+  const first = page.getByTestId("match-item").first();
+  await expect(first).toBeVisible();
+  await expect(first.getByRole("list", { name: "Interests" })).toBeVisible();
+  await first.getByRole("button", { name: /Open .*'s profile/ }).first().click();
+  await expect(page.getByTestId("profile-sheet")).toContainText("It's mutual");
+  await page.keyboard.press("Escape");
+  await first.getByTestId("match-chat").click();
+  await expect(page).toHaveURL(/\/discover\/matches\/match_/);
+  await expect(page.getByTestId("composer")).toBeVisible();
 });

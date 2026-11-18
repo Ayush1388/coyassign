@@ -45,6 +45,8 @@ export type MatchDTO = {
   lastMessage: LastMessage | null;
   /** True when the other person spoke last, or nobody has spoken yet. */
   yourTurn: boolean;
+  /** Full public profile (photos, looking-for, lifestyle). Only sent for mutual matches. */
+  details?: PublicProfile;
 };
 
 export type MessageDTO = { id: string; body: string; fromMe: boolean; createdAt: string; status?: MessageStatus };
