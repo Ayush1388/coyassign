@@ -34,11 +34,11 @@ export function ThemeToggle() {
       onClick={toggle}
       data-testid="theme-toggle"
       data-theme-current={theme}
-      aria-label={`Switch to ${next === "coy" ? "Coy" : "Minimal"} style`}
-      title={`Style: ${theme === "coy" ? "Coy" : "Minimal"}. Tap to switch`}
-      className="sticker-sm pressable focus-ring flex h-10 items-center gap-1.5 rounded-full! px-3 text-sm font-semibold"
+      aria-label={`Style: ${theme === "coy" ? "Coy" : "Minimal"}. Switch to ${next === "coy" ? "Coy" : "Minimal"}`}
+      title="Switch style"
+      className="btn-soft focus-ring px-3.5"
     >
-      <Palette className="size-4" aria-hidden />
+      <Palette className="size-[18px]" aria-hidden />
       <span>{theme === "coy" ? "Coy" : "Minimal"}</span>
     </button>
   );

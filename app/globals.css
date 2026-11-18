@@ -1,64 +1,75 @@
 @import "tailwindcss";
 
-/* Theme tokens. "coy" (default) mirrors Coy's live app: ink outlines, hard offset
-   shadows and candy surfaces. "minimal" is a calm, warm-neutral alternative.
-   Components only use these tokens, so the switch is purely CSS. */
+/*
+ * Design tokens taken from Coy's live CSS (see docs/design/app.getcoy.com.md).
+ * "coy" (default) = sticker physics: 2px ink edge + hard 3px pop, pastel surfaces
+ * that name the moment. "minimal" = a calm warm-neutral alternative.
+ * Components use only these tokens, so switching theme is pure CSS.
+ */
 :root,
 [data-theme="coy"] {
   --bg: #ffffff;
-  --ink: #17141c;
-  --muted: #6c6877;
+  --ink: #15121d;
+  --muted: #6d6979;
   --surface: #ffffff;
-  --surface-2: #f3f1f7;
-  --line: #17141c;
-  --accent: #ff3d7f;
-  --accent-ink: #ffffff;
-  --accent-soft: #ffe2ec;
-  --pass: #ffffff;
-  --pass-ink: #17141c;
-  --tint-0: #ffe15a;
-  --tint-1: #e5e0ff;
-  --tint-2: #c8f2dc;
-  --tint-3: #ffe2ec;
+  --soft: #f6f4fa;
+  --hairline: #ece9f2;
+  --line: #15121d;
+  --accent: #ff3d81;
+  --accent-ink: #15121d; /* Coy puts ink on pink: ~6:1 contrast vs ~3.4:1 for white */
+  --accent-strong: #d81e63;
+  --accent-soft: #ffe4ef;
+  --ok: #0e8f48;
+
+  /* Surface colour names the moment */
+  --tint-news: #ffe45c; /* yellow: something happened to you (match) */
+  --tint-status: #e7e0ff; /* lilac: status / empty */
+  --tint-reward: #cbf4e0; /* mint: what you earned (matches) */
+  --tint-sky: #d7ecff;
+  --tint-peach: #ffe1cf;
+
   --bw: 2px;
-  --radius: 26px;
-  --radius-sm: 16px;
-  --shadow: 4px 4px 0 var(--ink);
-  --shadow-sm: 3px 3px 0 var(--ink);
-  --shadow-press: 1px 1px 0 var(--ink);
+  --radius: 20px;
+  --radius-hero: 24px;
+  --radius-input: 16px;
+  --pop: 3px 3px 0 var(--ink);
+  --pop-hero: 5px 5px 0 var(--ink);
+  --pop-pressed: 0 0 0 var(--ink);
   --press: 3px;
   --display-weight: 800;
   --display-tracking: -0.035em;
-  --tabbar: rgba(255, 255, 255, 0.92);
+  --tabbar: rgba(255, 255, 255, 0.94);
   color-scheme: light;
 }
 
 [data-theme="minimal"] {
   --bg: #f7f3ee;
   --ink: #221d18;
-  --muted: #847a70;
+  --muted: #7a7066;
   --surface: #ffffff;
-  --surface-2: #efe9e2;
+  --soft: #efe9e2;
+  --hairline: #e7dfd6;
   --line: #e7dfd6;
   --accent: #e8615a;
   --accent-ink: #ffffff;
+  --accent-strong: #c2443e;
   --accent-soft: #fbe7e4;
-  --pass: #ffffff;
-  --pass-ink: #221d18;
-  --tint-0: #ffffff;
-  --tint-1: #ffffff;
-  --tint-2: #ffffff;
-  --tint-3: #ffffff;
+  --tint-news: #ffffff;
+  --tint-status: #ffffff;
+  --tint-reward: #ffffff;
+  --tint-sky: #ffffff;
+  --tint-peach: #ffffff;
   --bw: 1px;
-  --radius: 22px;
-  --radius-sm: 14px;
-  --shadow: 0 12px 32px -12px rgba(60, 40, 20, 0.22);
-  --shadow-sm: 0 6px 16px -8px rgba(60, 40, 20, 0.25);
-  --shadow-press: 0 3px 8px -4px rgba(60, 40, 20, 0.3);
+  --radius: 20px;
+  --radius-hero: 24px;
+  --radius-input: 14px;
+  --pop: 0 10px 28px -14px rgba(60, 40, 20, 0.28);
+  --pop-hero: 0 18px 40px -18px rgba(60, 40, 20, 0.3);
+  --pop-pressed: 0 4px 10px -6px rgba(60, 40, 20, 0.3);
   --press: 0px;
   --display-weight: 650;
   --display-tracking: -0.025em;
-  --tabbar: rgba(247, 243, 238, 0.9);
+  --tabbar: rgba(247, 243, 238, 0.92);
 }
 
 @theme inline {
@@ -66,74 +77,158 @@
   --color-ink: var(--ink);
   --color-muted: var(--muted);
   --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
+  --color-soft: var(--soft);
+  --color-hairline: var(--hairline);
   --color-line: var(--line);
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
+  --color-accent-strong: var(--accent-strong);
   --color-accent-soft: var(--accent-soft);
-  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-heading), ui-sans-serif, system-ui, sans-serif;
+  --color-news: var(--tint-news);
+  --color-status: var(--tint-status);
+  --color-reward: var(--tint-reward);
+  --font-sans: var(--font-bricolage), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 html,
 body {
   background: var(--bg);
   color: var(--ink);
+  /* A card being flung off-screen must never create horizontal page scroll. */
+  overflow-x: clip;
 }
 
 body {
   font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   transition: background-color 0.25s ease;
 }
 
+/* Coy type: one family, hierarchy via weight. Tight display tracking. */
 @utility display {
-  font-family: var(--font-display);
   font-weight: var(--display-weight);
   letter-spacing: var(--display-tracking);
   line-height: 1.02;
 }
 
-/* Bordered surface with the theme's shadow: Coy's signature "sticker" card. */
+@utility micro-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Raised, pressable or important surface: edge + pop (sticker). */
 @utility sticker {
   background: var(--surface);
   border: var(--bw) solid var(--line);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  box-shadow: var(--pop);
 }
 
-@utility sticker-sm {
+/* Hero card: larger radius and deeper pop (Coy's top-of-page cards). */
+@utility sticker-hero {
   background: var(--surface);
   border: var(--bw) solid var(--line);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-hero);
+  box-shadow: var(--pop-hero);
 }
 
-/* Pressable: sinks into its hard shadow on press (Coy), or just dims (minimal). */
+/* Flat "read" surface: soft fill, no edge, no pop (Coy's list rows). */
+@utility soft-surface {
+  background: var(--soft);
+  border-radius: var(--radius);
+}
+
+/* Press = sink into the shadow (transform only, so layout never shifts), 80ms like Coy. */
 @utility pressable {
-  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.2s ease, opacity 0.2s;
+  cursor: pointer;
+  transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, background-color 0.15s, opacity 0.15s;
   &:active:not(:disabled) {
     transform: translate(var(--press), var(--press));
-    box-shadow: var(--shadow-press);
+    box-shadow: var(--pop-pressed);
   }
   &:disabled {
-    opacity: 0.45;
+    opacity: 0.4;
     cursor: not-allowed;
   }
 }
 
-@utility focus-ring {
-  &:focus-visible {
-    outline: 3px solid var(--accent);
-    outline-offset: 3px;
+/* Primary CTA: Coy's pink pill with ink label. */
+@utility btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 54px;
+  padding: 0 24px;
+  border-radius: 999px;
+  border: var(--bw) solid var(--line);
+  box-shadow: var(--pop);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+@utility btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 54px;
+  padding: 0 24px;
+  border-radius: 999px;
+  border: var(--bw) solid var(--line);
+  box-shadow: var(--pop);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Utility icon button: soft circle, no edge, no pop (like Coy's settings gear). */
+@utility btn-soft {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  min-width: 44px;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s, transform 0.08s;
+  &:hover {
+    background: var(--hairline);
+  }
+  &:active {
+    transform: scale(0.96);
   }
 }
 
-@utility no-scrollbar {
-  scrollbar-width: none;
-  &::-webkit-scrollbar {
-    display: none;
+/* Emoji illustration tile (decorative, never a control). */
+@utility emoji-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: var(--surface);
+  border: var(--bw) solid var(--line);
+}
+
+@utility focus-ring {
+  &:focus-visible {
+    outline: 3px solid var(--accent-strong);
+    outline-offset: 3px;
   }
 }
 

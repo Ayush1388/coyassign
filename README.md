@@ -7,7 +7,7 @@ A swipe-based **Discover** tab built as a standalone app alongside a placeholder
 
 ![Discover, match, matches and empty state](docs/screenshots/overview.png)
 
-<sub>Left to right: Discover card (Coy style) · "It's a match!" · Matches view · Empty state (Minimal style)</sub>
+<sub>Left to right: Discover card · "It's a match!" · Matches · Empty state (all in the Coy style) · Discover in the Minimal style</sub>
 
 ---
 
@@ -48,8 +48,21 @@ Requires Node 20.12+ (tested on Node 24) and pnpm. No `.env` is needed locally; 
 - An "It's a match!" overlay appears **only** when `POST /swipe` returns `matched: true`. The client never infers a match.
 - A **Matches** view (inside Discover, with a count badge) lists mutual matches only.
 
+**Design: reverse-engineered from Coy's live app**
+
+The UI was rebuilt from Coy's own design tokens, not from guesses. **[docs/design-notes.md](docs/design-notes.md)** is a "design DNA" extracted from app.getcoy.com: its CSS variables, type scale and computed styles, plus four evidence-backed taste principles. The app applies those principles directly:
+
+| Coy principle (from the extraction) | How Discover applies it |
+|---|---|
+| **Sticker physics:** a `2px #15121D` edge and a hard `3px 3px 0` pop, no blur | Cards, CTAs and even the LIKE/PASS stamps are stickers. Presses sink into the shadow in 80ms, Coy's own timing. Utility buttons (Matches, style switch) stay flat soft circles like Coy's settings gear, because pop is reserved for primary actions. |
+| **One voice:** Bricolage Grotesque for every role, hierarchy by weight (800/700/600/400) | A single font family. Headlines use 800 weight with −0.035em tracking, and body text uses 400. |
+| **Surface colour names the moment** | Yellow `#FFE45C` is used only for the match ("news about you", like Coy's "Someone has a crush on you" card). Lilac `#E7E0FF` marks status and empty states. Mint `#CBF4E0` marks matches as the reward. Profile cards stay white, because the photo is the colour. |
+| **Phone-shaped even on a monitor** | A 480px centred column with a 20px gutter at every viewport. |
+
+Coy's CTA puts an **ink label on pink** (`#15121D` on `#FF3D81`, about 6:1 contrast). Discover keeps that rather than the common white-on-pink (about 3.4:1, which fails WCAG AA).
+
 **Two styles (switch in the header)**
-- **Coy** (default) mirrors the live app's language: ink outlines, hard offset shadows, yellow, lavender and mint surfaces, and the hot-pink accent.
+- **Coy** (default) uses the tokens above.
 - **Minimal** is a calm warm-neutral alternative.
 - Both are pure CSS tokens (`app/globals.css`). The choice is a UI preference stored in `localStorage`. Swipe and match data **never** are.
 

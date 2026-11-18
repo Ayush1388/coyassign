@@ -20,9 +20,9 @@ export function Photo({
       <div
         role="img"
         aria-label={name}
-        className={`flex items-center justify-center bg-accent-soft text-accent ${className}`}
+        className={`flex items-center justify-center bg-accent-soft text-accent-strong ${className}`}
       >
-        <span className="display text-[40%] text-5xl">{name.slice(0, 1).toUpperCase()}</span>
+        <span className="display text-5xl">{name.slice(0, 1).toUpperCase()}</span>
       </div>
     );
   }

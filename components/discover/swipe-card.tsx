@@ -83,16 +83,16 @@ export function SwipeCard({ profile, ref, onDecide, onExit, onBusyChange }: Prop
       <motion.div
         aria-hidden
         style={{ opacity: likeOpacity }}
-        className="pointer-events-none absolute top-6 left-5 -rotate-12 rounded-xl border-[3px] border-accent bg-surface/90 px-3 py-1"
+        className="pointer-events-none absolute top-6 left-5 -rotate-12 rounded-2xl border-(length:--bw) border-line bg-accent px-4 py-1.5 shadow-(--pop)"
       >
-        <span className="display text-3xl text-accent">LIKE</span>
+        <span className="display text-[30px] text-accent-ink">LIKE</span>
       </motion.div>
       <motion.div
         aria-hidden
         style={{ opacity: passOpacity }}
-        className="pointer-events-none absolute top-6 right-5 rotate-12 rounded-xl border-[3px] border-ink bg-surface/90 px-3 py-1"
+        className="pointer-events-none absolute top-6 right-5 rotate-12 rounded-2xl border-(length:--bw) border-line bg-surface px-4 py-1.5 shadow-(--pop)"
       >
-        <span className="display text-3xl text-ink">PASS</span>
+        <span className="display text-[30px] text-ink">PASS</span>
       </motion.div>
     </motion.div>
   );

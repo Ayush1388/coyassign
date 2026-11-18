@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
     ];
   },
   serverExternalPackages: ["@libsql/client", "libsql"],
+  devIndicators: false,
 };
 
 export default nextConfig;

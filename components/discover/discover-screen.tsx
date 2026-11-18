@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, RotateCcw, Sparkles, X } from "lucide-react";
+import { Heart, Lock, RotateCcw, Sparkles, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -129,14 +129,15 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
         <Link
           href="/discover/matches"
           data-testid="matches-link"
-          className="sticker-sm pressable focus-ring relative flex h-10 items-center gap-1.5 rounded-full! px-3 text-sm font-semibold"
+          aria-label={matchCount ? `Matches, ${matchCount}` : "Matches"}
+          className="btn-soft focus-ring px-3.5"
         >
-          <Heart className="size-4 fill-accent text-accent" aria-hidden />
+          <Heart className="size-[18px] fill-accent text-accent-strong" aria-hidden />
           Matches
           {!!matchCount && (
             <span
               data-testid="match-count"
-              className="ml-0.5 min-w-5 rounded-full bg-accent px-1.5 text-center text-xs leading-5 font-bold text-accent-ink"
+              className="min-w-[22px] rounded-full border-(length:--bw) border-line bg-accent px-1.5 text-center text-[12px] leading-[18px] font-extrabold text-accent-ink"
             >
               {matchCount}
             </span>
@@ -144,16 +145,25 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
         </Link>
       </AppHeader>
 
-      <div className="flex items-baseline justify-between px-4 pt-2 pb-3">
-        <h1 className="display text-[34px]">Discover</h1>
-        {feed.status === "ready" && profiles.length > 0 && (
-          <p className="text-sm font-medium text-muted" data-testid="remaining">
-            {profiles.length} new {profiles.length === 1 ? "face" : "faces"}
-          </p>
-        )}
+      <div className="px-5 pt-3 pb-4">
+        <div className="flex items-end justify-between gap-3">
+          <h1 className="display text-[40px]">Discover</h1>
+          {feed.status === "ready" && profiles.length > 0 && (
+            <p
+              className="mb-1 rounded-full bg-soft px-3 py-1 text-[13px] font-bold whitespace-nowrap text-muted"
+              data-testid="remaining"
+            >
+              {profiles.length} new {profiles.length === 1 ? "face" : "faces"}
+            </p>
+          )}
+        </div>
+        <p className="mt-1.5 inline-flex items-center gap-1.5 text-[14px] font-semibold text-muted">
+          <Lock className="size-3.5" aria-hidden />
+          Likes stay secret unless it&apos;s mutual.
+        </p>
       </div>
 
-      <section aria-label="Profiles" className="relative mx-4 min-h-[420px] flex-1">
+      <section aria-label="Profiles" className="relative mx-5 min-h-[430px] flex-1">
         {feed.status === "loading" && (
           <div className="absolute inset-0">
             <ProfileCardSkeleton />
@@ -161,14 +171,16 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
         )}
 
         {feed.status === "error" && (
-          <div className="sticker absolute inset-0 flex flex-col items-center justify-center gap-4 p-8 text-center" role="alert">
-            <p className="display text-2xl">Couldn&apos;t load profiles</p>
-            <p className="text-sm text-muted">{feed.message}</p>
-            <button
-              type="button"
-              onClick={() => void loadFeed()}
-              className="sticker-sm pressable focus-ring h-11 rounded-full! bg-accent! px-6 font-bold text-accent-ink"
-            >
+          <div
+            className="sticker-hero absolute inset-0 flex flex-col items-center justify-center gap-3 bg-status! p-8 text-center"
+            role="alert"
+          >
+            <span className="emoji-tile size-14 text-3xl" aria-hidden>
+              😵‍💫
+            </span>
+            <p className="display text-[28px]">Couldn&apos;t load profiles</p>
+            <p className="text-[16px] text-muted">{feed.message}</p>
+            <button type="button" onClick={() => void loadFeed()} className="btn-primary pressable focus-ring mt-2">
               Try again
             </button>
           </div>
@@ -196,7 +208,7 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
             className="absolute inset-0"
             initial={{ scale: 0.95, y: 14 }}
             animate={{ scale: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 26 }}
+            transition={{ type: "spring", stiffness: 320, damping: 26 }}
           >
             <SwipeCard
               ref={cardRef}
@@ -212,17 +224,17 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
           {toast && (
             <motion.div
               key={toast.id}
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              className={`sticker-sm absolute top-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full! px-4 py-2 text-sm font-semibold whitespace-nowrap ${
-                toast.tone === "like" ? "bg-accent! text-accent-ink" : ""
+              initial={{ opacity: 0, y: -10, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, transition: { duration: 0.12 } }}
+              className={`absolute top-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border-(length:--bw) border-line px-4 py-2 text-[14px] font-bold whitespace-nowrap shadow-(--pop) ${
+                toast.tone === "like" ? "bg-accent text-accent-ink" : "bg-surface text-ink"
               }`}
               role={toast.tone === "error" ? "alert" : "status"}
               data-testid="toast"
             >
               {toast.tone === "like" && <Heart className="size-4 fill-current" aria-hidden />}
-              {toast.tone === "pass" && <X className="size-4" aria-hidden />}
+              {toast.tone === "pass" && <X className="size-4" strokeWidth={3} aria-hidden />}
               {toast.text}
               {toast.retry && (
                 <button
@@ -231,7 +243,7 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
                     setToast(null);
                     toast.retry?.();
                   }}
-                  className="focus-ring ml-1 font-bold text-accent underline"
+                  className="focus-ring -my-2 ml-1 min-h-11 px-1 font-extrabold text-accent-strong underline underline-offset-2"
                 >
                   Retry
                 </button>
@@ -241,7 +253,7 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
         </AnimatePresence>
       </section>
 
-      <div className="flex items-center justify-center gap-6 pt-5 pb-3">
+      <div className="flex items-center justify-center gap-7 pt-6 pb-2">
         <button
           type="button"
           data-testid="pass-button"
@@ -250,7 +262,7 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
           onClick={() => cardRef.current?.swipe("PASS")}
           className="sticker pressable focus-ring flex size-16 items-center justify-center rounded-full!"
         >
-          <X className="size-7" strokeWidth={2.8} aria-hidden />
+          <X className="size-7" strokeWidth={3} aria-hidden />
         </button>
         <button
           type="button"
@@ -258,13 +270,13 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
           aria-label={top ? `Like ${top.name}` : "Like"}
           disabled={locked}
           onClick={() => cardRef.current?.swipe("LIKE")}
-          className="sticker pressable focus-ring flex size-[72px] items-center justify-center rounded-full! bg-accent! text-accent-ink"
+          className="sticker pressable focus-ring flex size-[76px] items-center justify-center rounded-full! bg-accent!"
         >
-          <Heart className="size-8 fill-current" aria-hidden />
+          <Heart className="size-8 fill-surface text-ink" strokeWidth={2} aria-hidden />
         </button>
       </div>
-      <p className="hidden pb-2 text-center text-xs text-muted pointer-fine:block" aria-hidden>
-        Tip: use ← and → to pass or like
+      <p className="hidden pb-2 text-center text-[13px] font-semibold text-muted pointer-fine:block" aria-hidden>
+        Drag the card, or press ← pass · like →
       </p>
 
       <AnimatePresence>{match && <MatchOverlay match={match} onClose={() => setMatch(null)} />}</AnimatePresence>
@@ -272,25 +284,22 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
   );
 }
 
+/** Lilac = Coy's status surface (same as its "No one has added you yet" card). */
 function EmptyState({ matchCount, canReset, onReset }: { matchCount: number; canReset: boolean; onReset: () => void }) {
   return (
     <div
       data-testid="empty-state"
-      className="sticker absolute inset-0 flex flex-col items-center justify-center gap-3 p-8 text-center"
-      style={{ background: "var(--tint-1)" }}
+      className="sticker-hero absolute inset-0 flex flex-col items-start justify-center gap-3 bg-status! p-7"
     >
-      <div className="text-6xl" aria-hidden>
+      <span className="emoji-tile size-16 text-[34px]" aria-hidden>
         👀
-      </div>
-      <h2 className="display text-[30px]">You&apos;re all caught up</h2>
-      <p className="max-w-[260px] text-[15px] text-ink/75">
-        New faces will show up here as people join. Your likes stay private unless they like you back.
+      </span>
+      <h2 className="display mt-2 text-[36px]">You&apos;re all caught up</h2>
+      <p className="max-w-[300px] text-[17px] leading-[1.45] text-ink/75">
+        New faces will show up here as people join. Your likes stay secret unless they like you back.
       </p>
-      <Link
-        href="/discover/matches"
-        className="sticker-sm pressable focus-ring mt-2 flex h-11 items-center gap-2 rounded-full! bg-accent! px-6 font-bold text-accent-ink"
-      >
-        <Sparkles className="size-4" aria-hidden />
+      <Link href="/discover/matches" className="btn-primary pressable focus-ring mt-3">
+        <Sparkles className="size-[18px]" aria-hidden />
         {matchCount > 0 ? `See your ${matchCount} ${matchCount === 1 ? "match" : "matches"}` : "See matches"}
       </Link>
       {canReset && (
@@ -298,7 +307,7 @@ function EmptyState({ matchCount, canReset, onReset }: { matchCount: number; can
           type="button"
           onClick={onReset}
           data-testid="reset-demo"
-          className="focus-ring mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-muted underline-offset-4 hover:underline"
+          className="focus-ring inline-flex min-h-11 items-center gap-1.5 text-[14px] font-bold text-muted underline underline-offset-4 hover:text-ink"
         >
           <RotateCcw className="size-3.5" aria-hidden /> Reset demo
         </button>
