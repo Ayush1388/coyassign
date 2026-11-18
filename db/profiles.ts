@@ -17,6 +17,11 @@ export type SeedProfile = {
   lat: number;
   lng: number;
   likesYou: boolean;
+  intent: string;
+  drinking: string;
+  smoking: string;
+  workout: string;
+  languages: string[];
 };
 
 /** The logged-in user: Connaught Place, New Delhi. */
@@ -31,9 +36,14 @@ export const SELF = {
   verified: true,
   lat: 28.6315,
   lng: 77.2167,
+  intent: "long_open",
+  drinking: "socially",
+  smoking: "no",
+  workout: "sometimes",
+  languages: ["English", "Hindi"],
 };
 
-type Raw = Omit<SeedProfile, "id">;
+type Raw = Omit<SeedProfile, "id" | "intent" | "drinking" | "smoking" | "workout" | "languages">;
 
 const raw: Raw[] = [
   { name: "Ananya", age: 21, city: "Lajpat Nagar, Delhi", college: "Lady Shri Ram College", bio: "Will judge you (lovingly) by your chai order. Currently learning to make sourdough and failing.", interests: ["Indie music", "Baking", "Thrifting", "Coffee"], prompt: ["A perfect Sunday", "Thrifting in Sarojini, then chole bhature that I didn't plan for."], verified: true, lat: 28.5677, lng: 77.2433, likesYou: true },
@@ -70,9 +80,45 @@ const raw: Raw[] = [
   { name: "Saanvi", age: 21, city: "Vasant Vihar, Delhi", bio: "Weekend birdwatcher, weekday environmental science student. Silence is my favourite sound.", interests: ["Birding", "Photography", "Trekking"], prompt: ["Best spot in the city", "Sanjay Van at dawn. Bring binoculars, not a speaker."], verified: true, lat: 28.5605, lng: 77.1635, likesYou: false },
 ];
 
-export const PROFILES: SeedProfile[] = raw.map((p, i) => ({
-  ...p,
-  id: `p${String(i + 1).padStart(2, "0")}`,
-}));
+/** Public "looking for", lifestyle and languages per profile: [intent, drinking, smoking, workout, languages]. */
+const ATTRS: Record<string, [string, string, string, string, string[]]> = {
+  Ananya: ["long_term", "socially", "no", "sometimes", ["English", "Hindi"]],
+  Kabir: ["long_open", "rarely", "no", "daily", ["English", "Hindi", "Kannada"]],
+  Ishita: ["short_open", "socially", "no", "sometimes", ["English", "Hindi", "Marathi"]],
+  Arjun: ["long_term", "rarely", "no", "daily", ["English", "Hindi"]],
+  Meera: ["figuring", "never", "no", "sometimes", ["English", "Tamil"]],
+  Rohan: ["short_term", "socially", "sometimes", "never", ["English", "Hindi"]],
+  Sana: ["long_term", "never", "no", "sometimes", ["English", "Hindi", "Urdu"]],
+  Vihaan: ["short_term", "socially", "sometimes", "daily", ["English", "Kannada"]],
+  Tara: ["short_open", "socially", "no", "daily", ["English", "Konkani"]],
+  Dev: ["long_open", "socially", "no", "daily", ["English", "Hindi", "Punjabi"]],
+  Riya: ["friends", "rarely", "no", "sometimes", ["English", "Hindi", "Bengali"]],
+  Aditya: ["figuring", "socially", "yes", "never", ["English", "Hindi"]],
+  Zoya: ["long_open", "never", "no", "sometimes", ["English", "Hindi", "Urdu"]],
+  Kunal: ["short_open", "socially", "no", "sometimes", ["English", "Hindi"]],
+  Aisha: ["friends", "rarely", "no", "daily", ["English", "Hindi"]],
+  Nikhil: ["long_term", "socially", "no", "daily", ["English", "Hindi", "Punjabi"]],
+  Diya: ["figuring", "never", "no", "sometimes", ["English", "Gujarati", "Hindi"]],
+  Aryan: ["short_term", "socially", "sometimes", "sometimes", ["English", "Hindi"]],
+  Kavya: ["long_term", "rarely", "no", "daily", ["English", "Malayalam"]],
+  Siddharth: ["long_open", "rarely", "no", "never", ["English", "Hindi", "Telugu"]],
+  Pooja: ["long_term", "never", "no", "daily", ["English", "Hindi"]],
+  Ritvik: ["friends", "never", "no", "never", ["English", "Hindi", "Bengali"]],
+  Nandini: ["long_open", "socially", "no", "daily", ["English", "Hindi"]],
+  Yash: ["short_open", "socially", "sometimes", "sometimes", ["English", "Hindi"]],
+  Simran: ["long_term", "rarely", "no", "sometimes", ["English", "Hindi", "Punjabi"]],
+  Harsh: ["short_term", "socially", "yes", "never", ["English", "Hindi"]],
+  Leela: ["long_open", "never", "no", "daily", ["English", "Hindi", "Kannada"]],
+  Neil: ["short_open", "socially", "no", "sometimes", ["English", "Konkani", "Hindi"]],
+  Aanya: ["figuring", "rarely", "no", "never", ["English", "Hindi"]],
+  Raghav: ["long_term", "rarely", "no", "daily", ["English", "Hindi", "Telugu"]],
+  Maya: ["long_open", "socially", "no", "daily", ["English", "Khasi", "Hindi"]],
+  Saanvi: ["friends", "never", "no", "daily", ["English", "Hindi", "Kannada"]],
+};
+
+export const PROFILES: SeedProfile[] = raw.map((p, i) => {
+  const [intent, drinking, smoking, workout, languages] = ATTRS[p.name];
+  return { ...p, id: `p${String(i + 1).padStart(2, "0")}`, intent, drinking, smoking, workout, languages };
+});
 
 export const photoFor = (id: string) => `/profiles/${id}.jpg`;

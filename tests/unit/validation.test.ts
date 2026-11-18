@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { swipeInputSchema } from "@/lib/validation";
+import { feedQuerySchema, swipeInputSchema } from "@/lib/validation";
 
 describe("swipeInputSchema", () => {
   it.each(["LIKE", "PASS"])("accepts action %s", (action) => {
@@ -25,5 +25,21 @@ describe("swipeInputSchema", () => {
   it("trims whitespace around profileId", () => {
     const r = swipeInputSchema.parse({ profileId: " p01 ", action: "PASS" });
     expect(r.profileId).toBe("p01");
+  });
+});
+
+describe("feedQuerySchema", () => {
+  it("parses list and flag filters", () => {
+    const q = feedQuerySchema.parse({ intents: "long_term,friends", verified: "1", interests: "Coffee,Street food" });
+    expect(q).toMatchObject({ intents: ["long_term", "friends"], verified: true, interests: ["Coffee", "Street food"] });
+  });
+  it.each([
+    [{ intents: "hookups_only" }],
+    [{ smoking: "maybe" }],
+    [{ interests: "<script>" }],
+    [{ minAge: "30", maxAge: "20" }],
+    [{ unknown: "x" }],
+  ])("rejects %j", (q) => {
+    expect(feedQuerySchema.safeParse(q).success).toBe(false);
   });
 });

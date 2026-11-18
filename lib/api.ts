@@ -7,7 +7,22 @@ export type SwipeResponse =
   | { success: true; matched: false; match: null }
   | { success: true; matched: true; match: MatchDTO };
 
-export type Filters = { minAge?: number; maxAge?: number; maxKm?: number };
+export type Filters = {
+  minAge?: number;
+  maxAge?: number;
+  maxKm?: number;
+  intents?: string[];
+  drinking?: string[];
+  smoking?: string[];
+  workout?: string[];
+  interests?: string[];
+  languages?: string[];
+  verified?: boolean;
+  shared?: boolean;
+};
+
+export type Me = { name: string; city: string; interests: string[]; intent: string | null };
+export type FilterOptions = { interests: string[]; languages: string[] };
 
 export type Conversation = {
   match: {
@@ -52,11 +67,17 @@ const jsonInit = (method: string, body: unknown): RequestInit => ({
   body: JSON.stringify(body),
 });
 
-function feedQuery(f: Filters) {
+export function feedQuery(f: Filters) {
   const q = new URLSearchParams();
   if (f.minAge != null) q.set("minAge", String(f.minAge));
   if (f.maxAge != null) q.set("maxAge", String(f.maxAge));
   if (f.maxKm != null) q.set("maxKm", String(f.maxKm));
+  for (const key of ["intents", "drinking", "smoking", "workout", "interests", "languages"] as const) {
+    const v = f[key];
+    if (v?.length) q.set(key, v.join(","));
+  }
+  if (f.verified) q.set("verified", "1");
+  if (f.shared) q.set("shared", "1");
   const s = q.toString();
   return s ? `?${s}` : "";
 }
@@ -64,7 +85,7 @@ function feedQuery(f: Filters) {
 export const api = {
   feed: (filters: Filters = {}) =>
     request<{ profiles: PublicProfile[] }>(`/api/feed${feedQuery(filters)}`).then((r) => r.profiles),
-  me: () => request<{ me: { name: string; city: string; interests: string[] } }>("/api/me").then((r) => r.me),
+  me: () => request<{ me: Me; options: FilterOptions }>("/api/me"),
   matches: () => request<{ matches: MatchDTO[] }>("/api/matches").then((r) => r.matches),
   sentLikes: () => request<{ profiles: PublicProfile[] }>("/api/likes/sent").then((r) => r.profiles),
   swipe: (profileId: string, action: SwipeAction) => request<SwipeResponse>("/api/swipe", jsonInit("POST", { profileId, action })),

@@ -21,6 +21,11 @@ export type PublicProfile = {
   distanceKm: number | null;
   /** Interests the viewer also listed. Derived from public data only. */
   sharedInterests: string[];
+  /** Public "looking for" (see lib/profile-options.ts) and whether it matches the viewer's. */
+  intent: string | null;
+  sameIntent: boolean;
+  lifestyle: { drinking: string | null; smoking: string | null; workout: string | null };
+  languages: string[];
 };
 
 export type MatchProfile = Pick<PublicProfile, "id" | "name" | "age" | "photoUrl" | "city" | "college" | "verified">;
@@ -55,6 +60,10 @@ export function toPublicProfile(u: UserRow, viewer: UserRow): PublicProfile {
     prompt: u.promptQuestion && u.promptAnswer ? { question: u.promptQuestion, answer: u.promptAnswer } : null,
     distanceKm: bandBetween(viewer, u),
     sharedInterests: sharedInterests(interestsOf(viewer), interestsOf(u)),
+    intent: u.intent,
+    sameIntent: !!u.intent && u.intent === viewer.intent,
+    lifestyle: { drinking: u.drinking, smoking: u.smoking, workout: u.workout },
+    languages: Array.isArray(u.languages) ? u.languages : [],
   };
 }
 

@@ -7,7 +7,7 @@ A swipe-based **Discover** tab built as a standalone app alongside a placeholder
 
 ![Discover, match, matches and empty state](docs/screenshots/overview.png)
 
-<sub>Left to right: Discover · full profile · "It's a match!" · chat · Matches · Liked (your pending likes) · Chats</sub>
+<sub>Left to right: Discover · full profile · filters · "It's a match!" · chat · Matches · Chats</sub>
 
 ---
 
@@ -26,7 +26,7 @@ Requires Node 20.12+ (tested on Node 24) and pnpm. No `.env` is needed locally; 
 | `pnpm dev` | Migrate + idempotent seed, then the dev server |
 | `pnpm db:setup` | Apply migrations and seed (safe to re-run; it never deletes your swipes) |
 | `pnpm db:reset` | Clear *your* swipes and matches to replay the demo (the empty state also has a **Reset demo** button) |
-| `pnpm test` | 72 unit, API-integration and privacy tests (Vitest) |
+| `pnpm test` | 82 unit, API-integration and privacy tests (Vitest) |
 | `pnpm test:e2e` | 34 Playwright tests on mobile (Pixel 7) and desktop (builds and starts the app on port 3200 with its own DB) |
 | `pnpm typecheck` / `pnpm build` | Type check / production build |
 
@@ -44,7 +44,12 @@ Requires Node 20.12+ (tested on Node 24) and pnpm. No `.env` is needed locally; 
   - a **"2 things in common"** sticker, with shared interests highlighted first in pink
   - college or area, and a 2-line bio
 - **Full profile sheet** (ⓘ button or the ↑ key): a large photo, a Hinge-style prompt, "You both like…", all interests, and Like/Pass right there.
-- **Filters:** max distance (5 km → Anywhere) and age range, remembered per device.
+- **Filters**, modelled on what Tinder, Bumble and Hinge offer:
+  - **Looking for:** Tinder's six relationship goals, from 💍 long-term partner to 🎉 short-term fun, 👋 new friends and 🤔 still figuring it out. There's a "Same as me" shortcut, and cards highlight people who want the same thing as you.
+  - **Distance** (2 km → Anywhere, banded) and an **age range** with a two-thumb slider.
+  - **Quick picks:** verified profiles only, and only people who share something with you.
+  - **Interests** (any of), **lifestyle** (drinking, smoking, workout) and **languages spoken**.
+  - A live **"Show N people"** count, because, as Bumble warns, every filter shrinks the pool. Filters are remembered per device.
 - **Drag** on touch or mouse: the card follows your finger, tilts, and shows **LIKE** / **PASS** stickers. It commits past 110px or on a quick flick, and otherwise snaps back. There are also **buttons** (✕ / ♥) and **← / → keys**.
 - **Optimistic animation, without lying.** The card flies out while the request runs. If the server fails, it springs back with a **Retry** and nothing is lost. A single-flight guard means double taps, double drags or key repeats send exactly one request.
 - Empty states for "You're all caught up" and "No one fits your filters" (with Widen filters), plus loading skeletons and error states with retry.
@@ -141,8 +146,8 @@ Errors are always shaped `{ "error": { "code", "message" } }`.
 ### `GET /me`
 The logged-in user's own name, area and interests (used by the filters sheet).
 
-### `GET /feed?minAge=&maxAge=&maxKm=` (filters optional)
-Each profile also carries `verified`, `prompt`, a coarse `distanceKm` band (0 = under 1 km) and `sharedInterests`. Coordinates are never returned.
+### `GET /feed?minAge=&maxAge=&maxKm=&intents=&drinking=&smoking=&workout=&interests=&languages=&verified=1&shared=1` (all optional)
+Each profile also carries `verified`, `prompt`, a coarse `distanceKm` band (0 = under 1 km), `sharedInterests`, `intent` (+ `sameIntent`), `lifestyle` and `languages`. Every filter uses **public** profile fields only. List params are comma-separated and validated against known ids. Coordinates are never returned.
 
 ### `GET /api/likes/sent`
 People *you* liked who haven't matched yet (the **Liked** tab). There is intentionally no endpoint for who liked you.

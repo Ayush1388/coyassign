@@ -3,6 +3,7 @@
 import { GraduationCap, Heart, MapPin, Quote, X } from "lucide-react";
 import type { PublicProfile, SwipeAction } from "@/lib/api";
 import { distanceLabel, listInterests } from "@/lib/format";
+import { drinkingOf, intentOf, smokingOf, workoutOf } from "@/lib/profile-options";
 import { Photo } from "@/components/ui/photo";
 import { Sheet } from "@/components/ui/sheet";
 import { InterestChips } from "./interest-chips";
@@ -69,6 +70,41 @@ export function ProfileSheet({
           <p className="display mt-1 text-[22px]">You both like {listInterests(profile.sharedInterests, 3)}</p>
         </div>
       )}
+
+      {(() => {
+        const intent = intentOf(profile.intent);
+        const life = [drinkingOf(profile.lifestyle.drinking), smokingOf(profile.lifestyle.smoking), workoutOf(profile.lifestyle.workout)].filter(Boolean);
+        return (
+          <section className="mt-5 grid grid-cols-1 gap-2.5" aria-label="Looking for and lifestyle">
+            {intent && (
+              <div className={`flex items-center gap-3 rounded-[18px] p-3.5 ${profile.sameIntent ? "bg-accent-soft ring-2 ring-accent" : "bg-soft"}`}>
+                <span className="text-[26px] leading-none" aria-hidden>
+                  {intent.emoji}
+                </span>
+                <span>
+                  <span className="micro-label block text-[10px] text-muted">Looking for</span>
+                  <span className="text-[16px] font-extrabold">{intent.label}</span>
+                  {profile.sameIntent && <span className="ml-1.5 text-[13px] font-bold text-accent-strong">· same as you</span>}
+                </span>
+              </div>
+            )}
+            {(life.length > 0 || profile.languages.length > 0) && (
+              <div className="flex flex-wrap gap-1.5">
+                {life.map((l) => (
+                  <span key={l!.phrase} className="inline-flex h-8 items-center gap-1 rounded-full bg-soft px-3 text-[13px] font-semibold">
+                    <span aria-hidden>{l!.emoji}</span> {l!.phrase}
+                  </span>
+                ))}
+                {profile.languages.length > 0 && (
+                  <span className="inline-flex h-8 items-center gap-1 rounded-full bg-soft px-3 text-[13px] font-semibold">
+                    <span aria-hidden>🗣️</span> {profile.languages.join(", ")}
+                  </span>
+                )}
+              </div>
+            )}
+          </section>
+        );
+      })()}
 
       {profile.bio && (
         <section className="mt-5">

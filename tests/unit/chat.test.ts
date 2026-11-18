@@ -130,3 +130,35 @@ describe("sent likes (the 'Liked' tab)", () => {
     for (const id of LIKERS.slice(1)) expect(sent).not.toContain(id);
   });
 });
+
+describe("rich filters (all on public fields)", () => {
+  it("filters by what people are looking for", async () => {
+    const feed = await getFeed(t.db, ME, { intents: ["short_term", "friends"] });
+    expect(feed.length).toBeGreaterThan(0);
+    for (const p of feed) expect(["short_term", "friends"]).toContain(p.intent);
+  });
+
+  it("filters by lifestyle, languages, verified and shared interests together", async () => {
+    const feed = await getFeed(t.db, ME, { smoking: ["no"], languages: ["Hindi"], verified: true, shared: true });
+    expect(feed.length).toBeGreaterThan(0);
+    for (const p of feed) {
+      expect(p.lifestyle.smoking).toBe("no");
+      expect(p.languages).toContain("Hindi");
+      expect(p.verified).toBe(true);
+      expect(p.sharedInterests.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("interest filter matches any of the chosen interests", async () => {
+    const feed = await getFeed(t.db, ME, { interests: ["Coffee", "Books"] });
+    expect(feed.length).toBeGreaterThan(0);
+    for (const p of feed) expect(p.interests.some((i) => ["coffee", "books"].includes(i.toLowerCase()))).toBe(true);
+  });
+
+  it("flags when someone wants the same thing as you", async () => {
+    const feed = await getFeed(t.db, ME);
+    const same = feed.filter((p) => p.sameIntent);
+    expect(same.length).toBeGreaterThan(0);
+    for (const p of same) expect(p.intent).toBe("long_open");
+  });
+});

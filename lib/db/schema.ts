@@ -18,6 +18,12 @@ export const users = sqliteTable("users", {
   /** Hinge-style prompt shown on the profile sheet. */
   promptQuestion: text("prompt_question"),
   promptAnswer: text("prompt_answer"),
+  /** Public "looking for" + lifestyle + languages (filterable; see lib/profile-options.ts). */
+  intent: text("intent"),
+  drinking: text("drinking"),
+  smoking: text("smoking"),
+  workout: text("workout"),
+  languages: text("languages", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
   /** Photo-verified badge (public). */
   verified: integer("verified", { mode: "boolean" }).notNull().default(false),
   /**

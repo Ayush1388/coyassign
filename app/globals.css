@@ -317,3 +317,140 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------- Filter controls ---------- */
+
+/* Borderless primary pill (sheets): pink gradient, ink label for contrast. */
+@utility pill-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 0 22px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--accent-ink);
+  background: linear-gradient(180deg, #ff6aa0 0%, var(--accent) 60%, #f02a70 100%);
+  box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--accent) 80%, transparent);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s;
+  &:hover {
+    box-shadow: 0 14px 28px -10px color-mix(in srgb, var(--accent) 90%, transparent);
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Single range slider with a pink filled track (uses --fill). */
+input.range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+input.range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--accent) 0 var(--fill, 0%), var(--hairline) var(--fill, 0%) 100%);
+}
+input.range::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--hairline);
+}
+input.range::-moz-range-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+/* Shared thumb look for both slider kinds. */
+input.range::-webkit-slider-thumb,
+input.range-thumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  margin-top: -10px;
+  border-radius: 999px;
+  background: #fff;
+  border: 0;
+  box-shadow:
+    0 0 0 1px var(--hairline),
+    0 4px 10px -2px rgba(21, 18, 29, 0.3);
+  transition: transform 0.12s;
+}
+input.range::-moz-range-thumb,
+input.range-thumb::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: #fff;
+  border: 0;
+  box-shadow:
+    0 0 0 1px var(--hairline),
+    0 4px 10px -2px rgba(21, 18, 29, 0.3);
+}
+input.range:active::-webkit-slider-thumb,
+input.range-thumb:active::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+
+/* Dual range: two transparent inputs stacked; only the thumbs take pointer events. */
+input.range-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+  height: 32px;
+  margin: 0;
+}
+input.range-thumb::-webkit-slider-runnable-track {
+  height: 6px;
+  background: transparent;
+}
+input.range-thumb::-moz-range-track {
+  background: transparent;
+}
+input.range-thumb::-webkit-slider-thumb {
+  pointer-events: auto;
+  cursor: grab;
+}
+input.range-thumb::-moz-range-thumb {
+  pointer-events: auto;
+  cursor: grab;
+}
+
+/* iOS-style switch on a native checkbox. */
+input.switch {
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  width: 50px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--hairline);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+input.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 2px 6px -1px rgba(21, 18, 29, 0.35);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+input.switch:checked {
+  background: var(--accent);
+}
+input.switch:checked::after {
+  transform: translateX(20px);
+}

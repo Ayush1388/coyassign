@@ -1,6 +1,7 @@
 import { BadgeCheck, Heart, MapPin, MoreHorizontal, Quote } from "lucide-react";
 import type { PublicProfile } from "@/lib/api";
 import { shortDistance } from "@/lib/format";
+import { intentOf } from "@/lib/profile-options";
 import { Photo } from "@/components/ui/photo";
 import { interestIcon } from "./interest-icon";
 
@@ -37,6 +38,7 @@ export function ProfileCard({
     (a, b) => Number(shared.has(b.toLowerCase())) - Number(shared.has(a.toLowerCase())),
   );
   const distance = shortDistance(profile.distanceKm);
+  const intent = intentOf(profile.intent);
 
   return (
     <article
@@ -91,9 +93,23 @@ export function ProfileCard({
           {profile.verified && <VerifiedBadge className="size-7" onPhoto />}
         </h2>
 
-        <p className="flex min-w-0 items-center gap-1.5 text-[14px] font-semibold text-white/85">
-          <MapPin className="size-4 shrink-0" aria-hidden />
-          <span className="truncate">{profile.city}</span>
+        <p className="flex min-w-0 items-center gap-2 text-[14px] font-semibold text-white/85">
+          <span className="flex min-w-0 items-center gap-1">
+            <MapPin className="size-4 shrink-0" aria-hidden />
+            <span className="truncate">{profile.city}</span>
+          </span>
+          {intent && (
+            <span
+              data-testid="card-intent"
+              className={`inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[12px] font-bold ${
+                profile.sameIntent ? "bg-accent text-accent-ink" : "glass"
+              }`}
+              title={profile.sameIntent ? "Looking for the same thing as you" : `Looking for: ${intent.label}`}
+            >
+              <span aria-hidden>{intent.emoji}</span> {intent.short}
+              {profile.sameIntent && <span className="sr-only"> (same as you)</span>}
+            </span>
+          )}
         </p>
 
         {profile.bio && <p className="line-clamp-2 text-[15px] leading-[1.38] text-white/95">{profile.bio}</p>}

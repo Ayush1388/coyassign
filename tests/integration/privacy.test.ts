@@ -10,7 +10,7 @@ import { CURRENT_USER_ID as ME } from "@/lib/auth";
 import { getFeed } from "@/lib/services/feed";
 import { LIKERS, makeTestDb, NON_LIKERS, type TestDb } from "../helpers";
 
-const FEED_KEYS = ["age", "bio", "city", "college", "distanceKm", "id", "interests", "name", "photoUrl", "prompt", "sharedInterests", "verified"];
+const FEED_KEYS = ["age", "bio", "city", "college", "distanceKm", "id", "intent", "interests", "languages", "lifestyle", "name", "photoUrl", "prompt", "sameIntent", "sharedInterests", "verified"];
 const MATCH_PROFILE_KEYS = ["age", "city", "college", "id", "name", "photoUrl", "verified"];
 const LOCATION_KEY = /^(lat|lng|lon|latitude|longitude|coords?|location|geo)$/i;
 const FORBIDDEN = /lik(ed|es)(you|me|currentuser)|incoming|admirer|crush|swipe|action|score/i;

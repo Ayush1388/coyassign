@@ -64,7 +64,7 @@ export function Sheet({
             aria-labelledby={titleId}
             tabIndex={-1}
             data-testid={testId}
-            className="sticker-hero relative flex max-h-[92dvh] w-full max-w-[480px] flex-col rounded-b-none! outline-none sm:rounded-b-[var(--radius-hero)]!"
+            className="relative flex max-h-[92dvh] w-full max-w-[480px] flex-col rounded-t-[28px] bg-surface shadow-[0_-12px_40px_-12px_rgba(21,18,29,0.35)] outline-none sm:rounded-[28px]"
             initial={reduce ? false : { y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%", transition: { duration: 0.18, ease: "easeIn" } }}

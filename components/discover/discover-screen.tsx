@@ -8,6 +8,7 @@ import {
   api,
   ApiError,
   type Filters,
+  type FilterOptions,
   type MatchDTO,
   type PublicProfile,
   type SwipeAction,
@@ -15,7 +16,7 @@ import {
 } from "@/lib/api";
 import { AppHeader } from "@/components/nav/app-header";
 import { Photo } from "@/components/ui/photo";
-import { FiltersSheet, isFiltered, loadFilters, saveFilters } from "./filters-sheet";
+import { activeCount, FiltersSheet, loadFilters, saveFilters } from "./filters-sheet";
 import { MatchOverlay } from "./match-overlay";
 import { ProfileCard, ProfileCardSkeleton } from "./profile-card";
 import { ProfileSheet } from "./profile-sheet";
@@ -41,6 +42,8 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
   const [feed, setFeed] = useState<FeedState>({ status: "loading" });
   const [filters, setFilters] = useState<Filters | null>(null);
   const [myInterests, setMyInterests] = useState<string[]>([]);
+  const [myIntent, setMyIntent] = useState<string | null>(null);
+  const [options, setOptions] = useState<FilterOptions | null>(null);
   const [match, setMatch] = useState<MatchDTO | null>(null);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
@@ -67,7 +70,14 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
   // Filters live in localStorage (a UI preference), so read them after mount.
   useEffect(() => {
     setFilters(loadFilters());
-    api.me().then((me) => setMyInterests(me.interests)).catch(() => {});
+    api
+      .me()
+      .then(({ me, options }) => {
+        setMyInterests(me.interests);
+        setMyIntent(me.intent);
+        setOptions(options);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -150,7 +160,8 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
     }
   }
 
-  const filtered = filters ? isFiltered(filters) : false;
+  const filterCount = filters ? activeCount(filters) : 0;
+  const filtered = filterCount > 0;
   const attention = counts ? counts.yourTurn + counts.newMatches : 0;
 
   return (
@@ -337,12 +348,18 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
           type="button"
           onClick={() => setSheet("filters")}
           data-testid="filters-button"
-          aria-label={filtered ? "Filters (on)" : "Filters"}
+          aria-label={filtered ? `Filters (${filterCount} on)` : "Filters"}
           className="fab focus-ring relative size-[50px] text-muted hover:text-ink"
         >
           <SlidersHorizontal className="size-[22px]" strokeWidth={2.2} aria-hidden />
           {filtered && (
-            <span aria-hidden className="absolute top-0.5 right-0.5 size-3 rounded-full border-2 border-surface bg-accent" />
+            <span
+              aria-hidden
+              data-testid="filter-count"
+              className="absolute -top-1 -right-1 min-w-[20px] rounded-full border-2 border-surface bg-accent px-1 text-center text-[11px] leading-[16px] font-extrabold text-accent-ink"
+            >
+              {filterCount}
+            </span>
           )}
         </button>
       </div>
@@ -364,6 +381,8 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
         open={sheet === "filters"}
         value={filters ?? {}}
         myInterests={myInterests}
+        myIntent={myIntent}
+        options={options}
         onClose={() => setSheet(null)}
         onApply={applyFilters}
       />

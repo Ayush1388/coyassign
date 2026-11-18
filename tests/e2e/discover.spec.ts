@@ -249,27 +249,42 @@ test("the full profile sheet opens and can like from there", async ({ page }) =>
   expect((await apiFeed(page)).map((p) => p.id)).not.toContain(first);
 });
 
-test("filters narrow the feed and are remembered", async ({ page }) => {
+test("filters narrow the feed, show a live count, and are remembered", async ({ page }) => {
   await openDiscover(page);
   await page.getByTestId("filters-button").click();
+  const sheet = page.getByTestId("filters-sheet");
+  await expect(sheet).toBeVisible();
+
+  // Looking for: long-term partner
+  await page.getByTestId("intent-long_term").click();
+  await expect(page.getByTestId("intent-long_term")).toHaveAttribute("aria-pressed", "true");
+  // Distance: 2 km -> 5 -> 10 km
   const slider = page.getByTestId("distance-slider");
   await slider.focus();
-  await slider.press("Home"); // 5 km
-  await slider.press("ArrowRight"); // 10 km
+  await slider.press("Home");
+  await slider.press("ArrowRight");
+  await slider.press("ArrowRight");
   await expect(page.getByTestId("distance-value")).toHaveText("10 km");
-  await page.getByTestId("apply-filters").click();
-  await expect(page.getByTestId("filters-sheet")).toBeHidden();
+  // Non-smokers only (switch-style chip)
+  await page.getByTestId("smoking-no").click();
 
-  const remaining = await page.getByTestId("remaining").textContent();
-  const n = Number(remaining!.split(" ")[0]);
-  expect(n).toBeGreaterThan(0);
-  expect(n).toBeLessThan(TOTAL);
-  const near = (await (await page.request.get("/api/feed?maxKm=10")).json()).profiles;
-  expect(n).toBe(near.length);
+  const expected = (await (await page.request.get("/api/feed?intents=long_term&maxKm=10&smoking=no")).json()).profiles.length;
+  await expect(page.getByTestId("apply-filters")).toHaveText(
+    expected === 0 ? "No one fits yet" : `Show ${expected} ${expected === 1 ? "person" : "people"}`,
+  );
+  await page.getByTestId("apply-filters").click();
+  await expect(sheet).toBeHidden();
+  await expect(page.getByTestId("filter-count")).toHaveText("3");
+
+  if (expected > 0) {
+    await expect(page.getByTestId("remaining")).toHaveText(`${expected} new ${expected === 1 ? "face" : "faces"}`);
+    await expect(topCard(page).getByTestId("card-intent")).toContainText("Long-term");
+  } else {
+    await expect(page.getByTestId("empty-state")).toContainText("No one fits your filters");
+  }
 
   await page.reload();
-  await expect(page.getByTestId("remaining")).toHaveText(remaining!);
-  await expect(page.getByRole("button", { name: "Filters (on)" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Filters (3 on)" })).toBeVisible();
 });
 
 test("unmatching from a chat removes the match", async ({ page }) => {
