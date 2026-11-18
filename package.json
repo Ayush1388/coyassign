@@ -1,6 +1,7 @@
 {
   "name": "coy-discover",
   "version": "1.0.0",
+  "description": "Swipe-based Discover tab for Coy: mutual-only matching, a privacy-first API and SQLite persistence.",
   "private": true,
   "type": "module",
   "scripts": {
@@ -39,5 +40,8 @@
     "tsx": "^4.23.15",
     "typescript": "5.9.3",
     "vitest": "5.1.0"
+  },
+  "engines": {
+    "node": ">=20.12"
   }
 }
