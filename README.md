@@ -68,7 +68,7 @@ The Discover layout follows a supplied mockup: logo with icon buttons, pill sect
 
 | Mockup | Built as | Why |
 |---|---|---|
-| Tabs: Discover · Matches · **Likes 24** · Chats | Discover · Matches · **Liked** · Chats | "Likes 24" means *who liked you*, the one thing Coy never reveals. **Liked** lists the people **you** liked who haven't matched yet (`GET /api/likes/sent`). That is your own data and only you can see it. |
+| Tabs: Discover · Matches · **Likes 24** · Chats | Matches · **Liked** · Chats (Discover itself is the bottom tab) | "Likes 24" means *who liked you*, the one thing Coy never reveals. **Liked** lists the people **you** liked who haven't matched yet (`GET /api/likes/sent`). That is your own data and only you can see it. |
 | ↺ Undo · ★ Super-like | ⓘ Profile · ⚙︎ Filters | Undo would break the brief ("a profile that has been swiped on must never appear again"). A Super-like reveals one-sided interest. |
 | "12K+ active now" | Avatars of the next people in your deck + "32 new faces" | Real data instead of an invented number, and no activity tracking. |
 | Interest photo strip | The profile's prompt | There are no per-interest photos, and we don't fabricate them. |

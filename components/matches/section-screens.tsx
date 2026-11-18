@@ -322,26 +322,43 @@ export function ChatsScreen() {
       {state.status === "error" && <ErrorBox message={state.message} onRetry={() => void reload()} />}
 
       {fresh.length > 0 && (
-        <div className="mb-5">
+        <div className="mb-6">
           <h2 className="micro-label text-muted">New matches · say hi</h2>
-          <ul className="no-scrollbar -mx-5 mt-3 flex gap-3 overflow-x-auto px-5 pt-1 pb-2">
+          <ul className="mt-3 flex flex-col gap-2.5" data-testid="new-matches">
             {fresh.map((m) => (
-              <li key={m.id} className="shrink-0">
+              <li key={m.id}>
                 <Link
                   href={`/discover/matches/${m.id}`}
                   data-testid="new-match"
-                  className="focus-ring flex w-[72px] flex-col items-center gap-1.5 rounded-[18px]"
+                  data-profile-id={m.profile.id}
+                  className="focus-ring flex items-center gap-3 rounded-[20px] border border-hairline bg-surface p-3 transition-colors hover:bg-soft"
                 >
-                  <span className="relative block size-[68px] overflow-hidden rounded-full border-(length:--bw) border-line shadow-(--pop)">
+                  <span className="relative size-14 shrink-0 overflow-hidden rounded-full ring-2 ring-accent ring-offset-2 ring-offset-surface">
                     <Photo src={m.profile.photoUrl} name={m.profile.name} className="absolute inset-0 size-full" eager />
                   </span>
-                  <span className="max-w-full truncate text-[13px] font-bold">{m.profile.name}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5">
+                      <span className="truncate text-[16px] font-extrabold">{m.profile.name}</span>
+                      {m.profile.verified && <VerifiedBadge className="size-4" />}
+                      <span className="ml-auto shrink-0 text-[12px] font-semibold text-muted">{formatDay(m.createdAt)}</span>
+                    </span>
+                    <span className="mt-0.5 block truncate text-[14px] text-muted">
+                      {m.sharedInterests.length
+                        ? `You both like ${m.sharedInterests.slice(0, 2).join(" & ")}`
+                        : "You matched. Say hi!"}
+                    </span>
+                  </span>
+                  <span className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full bg-accent-soft px-3 text-[13px] font-extrabold text-ink">
+                    <MessageCircle className="size-3.5" aria-hidden /> Say hi
+                  </span>
                 </Link>
               </li>
             ))}
           </ul>
         </div>
       )}
+
+      {convos.length > 0 && <h2 className="micro-label mb-3 text-muted">Messages</h2>}
 
       {state.status === "ready" && convos.length === 0 && (
         <Empty

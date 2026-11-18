@@ -302,16 +302,16 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
       </section>
 
       {/* Actions: profile · pass · LIKE · filters */}
-      <div className="flex items-center justify-center gap-4 pt-2 pb-1">
+      <div className="flex items-center justify-center gap-5 pt-3 pb-2">
         <button
           type="button"
           data-testid="info-button"
           aria-label={top ? `Open ${top.name}'s full profile` : "Open profile"}
           disabled={!top || busy || !!match}
           onClick={() => setSheet("profile")}
-          className="sticker pressable focus-ring flex size-14 items-center justify-center rounded-full!"
+          className="fab focus-ring size-[50px] text-muted hover:text-ink"
         >
-          <Info className="size-6" aria-hidden />
+          <Info className="size-[22px]" strokeWidth={2.2} aria-hidden />
         </button>
         <button
           type="button"
@@ -319,9 +319,9 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
           aria-label={top ? `Pass on ${top.name}` : "Pass"}
           disabled={locked}
           onClick={() => cardRef.current?.swipe("PASS")}
-          className="sticker pressable focus-ring flex size-[68px] items-center justify-center rounded-full!"
+          className="fab focus-ring size-16"
         >
-          <X className="size-8" strokeWidth={3} aria-hidden />
+          <X className="size-8 text-[#f2546b]" strokeWidth={2.75} aria-hidden />
         </button>
         <button
           type="button"
@@ -329,20 +329,20 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
           aria-label={top ? `Like ${top.name}` : "Like"}
           disabled={locked}
           onClick={() => cardRef.current?.swipe("LIKE")}
-          className="pink-glow pressable focus-ring flex size-[84px] items-center justify-center rounded-full border-(length:--bw) border-line"
+          className="fab fab-like focus-ring size-[76px]"
         >
-          <Heart className="size-10 fill-surface text-ink" strokeWidth={1.75} aria-hidden />
+          <Heart className="size-9 fill-white text-white drop-shadow-[0_2px_3px_rgba(150,0,60,0.35)]" strokeWidth={1.5} aria-hidden />
         </button>
         <button
           type="button"
           onClick={() => setSheet("filters")}
           data-testid="filters-button"
           aria-label={filtered ? "Filters (on)" : "Filters"}
-          className="sticker pressable focus-ring relative flex size-14 items-center justify-center rounded-full!"
+          className="fab focus-ring relative size-[50px] text-muted hover:text-ink"
         >
-          <SlidersHorizontal className="size-6" aria-hidden />
+          <SlidersHorizontal className="size-[22px]" strokeWidth={2.2} aria-hidden />
           {filtered && (
-            <span aria-hidden className="absolute -top-0.5 -right-0.5 size-3.5 rounded-full border-2 border-surface bg-accent" />
+            <span aria-hidden className="absolute top-0.5 right-0.5 size-3 rounded-full border-2 border-surface bg-accent" />
           )}
         </button>
       </div>

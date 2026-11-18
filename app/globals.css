@@ -242,6 +242,57 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
+/* Floating action button: soft layered shadow, hairline ring, lift on hover, spring on press. */
+@utility fab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow:
+    0 0 0 1px var(--hairline),
+    0 2px 4px -1px rgba(21, 18, 29, 0.08),
+    0 12px 24px -10px rgba(21, 18, 29, 0.28);
+  cursor: pointer;
+  transition:
+    transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.2s ease,
+    background-color 0.2s ease,
+    opacity 0.2s;
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 0 1px var(--hairline),
+      0 4px 8px -2px rgba(21, 18, 29, 0.1),
+      0 18px 30px -12px rgba(21, 18, 29, 0.32);
+  }
+  &:active:not(:disabled) {
+    transform: scale(0.92);
+    transition-duration: 0.08s;
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+/* The hero Like button: pink gradient + coloured glow, no outline. */
+@utility fab-like {
+  background: radial-gradient(120% 120% at 30% 20%, #ff86b1 0%, var(--accent) 45%, #e91e63 100%);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 14px 28px -10px color-mix(in srgb, var(--accent) 75%, transparent),
+    0 4px 10px -4px rgba(233, 30, 99, 0.5);
+  &:hover:not(:disabled) {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.45),
+      0 20px 36px -12px color-mix(in srgb, var(--accent) 85%, transparent),
+      0 6px 12px -4px rgba(233, 30, 99, 0.55);
+  }
+}
+
 /* Frosted chip over a photo. */
 @utility glass {
   background: rgba(20, 16, 26, 0.42);
