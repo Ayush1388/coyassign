@@ -162,3 +162,31 @@ describe("rich filters (all on public fields)", () => {
     for (const p of same) expect(p.intent).toBe("long_open");
   });
 });
+
+describe("read receipts", () => {
+  it("my message is delivered, then seen shortly before their reply", async () => {
+    const id = await matchWith(LIKERS[0]);
+    const t0 = new Date("2026-11-18T10:00:00.000Z");
+    const sent = await sendMessage(t.db, ME, id, "hi!", t0);
+    expect(sent.status).toBe("delivered");
+
+    const early = await getConversation(t.db, ME, id, new Date(t0.getTime() + 300));
+    expect(early.messages[0].status).toBe("delivered");
+
+    const later = await getConversation(t.db, ME, id, new Date(t0.getTime() + 10_000));
+    expect(later.messages[0]).toMatchObject({ fromMe: true, status: "seen" });
+    // Receipts are only attached to my own messages.
+    expect(later.messages[1].fromMe).toBe(false);
+    expect(later.messages[1].status).toBeUndefined();
+  });
+});
+
+describe("profile photos", () => {
+  it("every profile has several photos, main first", async () => {
+    const feed = await getFeed(t.db, ME);
+    for (const p of feed) {
+      expect(p.photos.length).toBeGreaterThanOrEqual(3);
+      expect(p.photos[0]).toBe(p.photoUrl);
+    }
+  });
+});

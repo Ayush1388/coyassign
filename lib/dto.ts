@@ -11,6 +11,8 @@ export type PublicProfile = {
   name: string;
   age: number;
   photoUrl: string | null;
+  /** All photos, main first. */
+  photos: string[];
   bio: string;
   city: string;
   college: string | null;
@@ -30,6 +32,9 @@ export type PublicProfile = {
 
 export type MatchProfile = Pick<PublicProfile, "id" | "name" | "age" | "photoUrl" | "city" | "college" | "verified">;
 
+/** Read receipts for my own messages: delivered (✓) or seen (✓✓ blue). */
+export type MessageStatus = "delivered" | "seen";
+
 export type LastMessage = { body: string; fromMe: boolean; createdAt: string };
 
 export type MatchDTO = {
@@ -42,7 +47,7 @@ export type MatchDTO = {
   yourTurn: boolean;
 };
 
-export type MessageDTO = { id: string; body: string; fromMe: boolean; createdAt: string };
+export type MessageDTO = { id: string; body: string; fromMe: boolean; createdAt: string; status?: MessageStatus };
 
 const interestsOf = (u: UserRow) => (Array.isArray(u.interests) ? u.interests : []);
 
@@ -52,6 +57,7 @@ export function toPublicProfile(u: UserRow, viewer: UserRow): PublicProfile {
     name: u.name,
     age: u.age,
     photoUrl: u.photoUrl,
+    photos: Array.isArray(u.photos) && u.photos.length ? u.photos : u.photoUrl ? [u.photoUrl] : [],
     bio: u.bio,
     city: u.city,
     college: u.college,

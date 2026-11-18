@@ -1,11 +1,14 @@
 "use client";
 
-import { Heart, Hourglass, MessageCircle } from "lucide-react";
+import { Heart, Hourglass, MapPin, MessageCircle } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError, type MatchDTO, type PublicProfile } from "@/lib/api";
-import { formatDay, timeAgo } from "@/lib/format";
+import { formatDay, listInterests, shortDistance, timeAgo } from "@/lib/format";
+import { intentOf } from "@/lib/profile-options";
+import { InterestChips } from "@/components/discover/interest-chips";
+import { ProfileSheet } from "@/components/discover/profile-sheet";
 import { AppHeader } from "@/components/nav/app-header";
 import { VerifiedBadge } from "@/components/discover/profile-card";
 import { SectionTabs, type Section } from "@/components/discover/section-tabs";
@@ -235,11 +238,12 @@ export function MatchesScreen() {
 const fetchLiked = () => api.sentLikes();
 
 /**
- * People YOU liked who haven't matched (yet). Coy deliberately has no
- * "who liked you" list: that would break the core promise.
+ * People YOU liked who haven't matched (yet), as rich cards: what you share,
+ * what they're looking for, distance. Coy deliberately has no "who liked you" list.
  */
 export function LikedScreen() {
   const { state, reload } = useLive<PublicProfile[]>(fetchLiked);
+  const [open, setOpen] = useState<PublicProfile | null>(null);
   const list = state.status === "ready" ? state.data : [];
   return (
     <Frame
@@ -251,7 +255,13 @@ export function LikedScreen() {
       }
       subtitle="They only find out if they like you back. Then it's a match."
     >
-      {state.status === "loading" && <GridSkeleton />}
+      {state.status === "loading" && (
+        <div className="space-y-3" role="status" aria-label="Loading">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-[168px] animate-pulse rounded-[24px] bg-soft" />
+          ))}
+        </div>
+      )}
       {state.status === "error" && <ErrorBox message={state.message} onRetry={() => void reload()} />}
       {state.status === "ready" && list.length === 0 && (
         <Empty
@@ -260,35 +270,101 @@ export function LikedScreen() {
           title="No pending likes"
           body="People you like show up here until they like you back. Nobody can see this list but you."
           cta={
-            <Link href="/discover" className="btn-primary pressable focus-ring mt-3">
+            <Link href="/discover" className="pill-primary focus-ring mt-3 h-12">
               Discover people
             </Link>
           }
         />
       )}
       {list.length > 0 && (
-        <ul className="grid grid-cols-2 gap-4" data-testid="liked-list">
+        <ul className="flex flex-col gap-3.5" data-testid="liked-list">
           {list.map((p, i) => (
-            <PersonTile
+            <motion.li
               key={p.id}
-              index={i}
-              testId="liked-item"
-              profileId={p.id}
-              photoUrl={p.photoUrl}
-              name={p.name}
-              age={p.age}
-              verified={p.verified}
-              badge={sharedBadge(p.sharedInterests.length)}
-              footer={
-                <span className="inline-flex items-center gap-1">
-                  <Hourglass className="size-3" aria-hidden /> Only you can see this
-                </span>
-              }
-            />
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: Math.min(i, 8) * 0.04, duration: 0.25, ease: "easeOut" }}
+            >
+              <LikedCard profile={p} onOpen={() => setOpen(p)} />
+            </motion.li>
           ))}
         </ul>
       )}
+      <ProfileSheet
+        profile={open}
+        open={!!open}
+        onClose={() => setOpen(null)}
+        note="You liked them. They'll only find out if they like you back."
+      />
     </Frame>
+  );
+}
+
+function LikedCard({ profile: p, onOpen }: { profile: PublicProfile; onOpen: () => void }) {
+  const intent = intentOf(p.intent);
+  const distance = shortDistance(p.distanceKm);
+  const photos = p.photos.length ? p.photos : [p.photoUrl];
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      data-testid="liked-item"
+      data-profile-id={p.id}
+      className="focus-ring group flex w-full gap-3.5 rounded-[24px] bg-surface p-3 text-left shadow-[0_0_0_1px_var(--hairline),0_10px_24px_-16px_rgba(21,18,29,0.35)] transition-shadow hover:shadow-[0_0_0_1px_var(--hairline),0_16px_30px_-16px_rgba(21,18,29,0.45)]"
+    >
+      <span className="relative w-[112px] shrink-0">
+        <span className="relative block aspect-[3/4] overflow-hidden rounded-[18px] bg-soft">
+          <Photo src={photos[0] ?? null} name={p.name} className="absolute inset-0 size-full transition-transform duration-300 group-hover:scale-[1.03]" eager />
+        </span>
+        {photos.length > 1 && (
+          <span className="mt-1.5 flex gap-1" aria-label={`${photos.length} photos`}>
+            {photos.slice(1, 3).map((src) => (
+              <span key={src} className="relative block aspect-square flex-1 overflow-hidden rounded-[10px] bg-soft">
+                <Photo src={src} name={p.name} className="absolute inset-0 size-full" />
+              </span>
+            ))}
+          </span>
+        )}
+      </span>
+
+      <span className="flex min-w-0 flex-1 flex-col gap-1.5 py-0.5">
+        <span className="flex items-center gap-1.5">
+          <span className="truncate text-[19px] font-extrabold tracking-[-0.02em]">
+            {p.name}, {p.age}
+          </span>
+          {p.verified && <VerifiedBadge className="size-[18px] shrink-0" />}
+        </span>
+        <span className="flex items-center gap-1 truncate text-[13px] font-semibold text-muted">
+          <MapPin className="size-3.5 shrink-0" aria-hidden />
+          {distance ? `${distance} · ` : ""}
+          {p.city}
+        </span>
+        {intent && (
+          <span
+            className={`inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-bold ${
+              p.sameIntent ? "bg-accent text-accent-ink" : "bg-soft"
+            }`}
+          >
+            <span aria-hidden>{intent.emoji}</span> {intent.label}
+            {p.sameIntent && <span className="font-semibold"> · same as you</span>}
+          </span>
+        )}
+        {p.sharedInterests.length > 0 ? (
+          <span className="inline-flex items-center gap-1 text-[13px] font-bold text-accent-strong" data-testid="liked-shared">
+            <Heart className="size-3.5 fill-current" aria-hidden />
+            You both like {listInterests(p.sharedInterests, 2)}
+          </span>
+        ) : (
+          <span className="text-[13px] font-semibold text-muted">Nothing in common yet: ask about {p.interests[0] ?? "them"}!</span>
+        )}
+        <span className="mt-0.5">
+          <InterestChips interests={p.interests} shared={p.sharedInterests} max={3} size="sm" />
+        </span>
+        <span className="mt-auto inline-flex items-center gap-1 pt-1 text-[11.5px] font-semibold text-muted">
+          <Hourglass className="size-3" aria-hidden /> Waiting on them · only you can see this
+        </span>
+      </span>
+    </button>
   );
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { animate, motion, useMotionValue, useReducedMotion, useTransform, type PanInfo } from "motion/react";
-import { useImperativeHandle, useRef, type Ref } from "react";
+import { useImperativeHandle, useRef, useState, type Ref } from "react";
 import type { PublicProfile, SwipeAction, SwipeResponse } from "@/lib/api";
 import { ProfileCard } from "./profile-card";
 
@@ -36,6 +36,33 @@ export function SwipeCard({ profile, ref, onDecide, onExit, onBusyChange, onOpen
   const likeOpacity = useTransform(x, [20, DISTANCE_THRESHOLD], [0, 1]);
   const passOpacity = useTransform(x, [-DISTANCE_THRESHOLD, -20], [1, 0]);
   const busy = useRef(false);
+  const root = useRef<HTMLDivElement>(null);
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const photoCount = Math.max(1, profile.photos.length);
+
+  /** Where the pointer went down, so a drag that ends in a "click" isn't treated as a tap. */
+  const down = useRef<{ x: number; y: number } | null>(null);
+
+  /**
+   * Tap (not drag): the info area opens the full profile; the left or right of the
+   * photo goes to the previous or next photo (Tinder-style).
+   */
+  function handleClick(e: React.MouseEvent<HTMLDivElement>) {
+    const start = down.current;
+    down.current = null;
+    if (busy.current || !start) return;
+    if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 8) return; // it was a drag
+    const target = e.target as HTMLElement;
+    if (target.closest("button")) return;
+    if (target.closest("[data-zone=info]") || photoCount === 1) {
+      onOpen?.();
+      return;
+    }
+    const rect = root.current?.getBoundingClientRect();
+    if (!rect) return;
+    const goBack = e.clientX - rect.left < rect.width / 2;
+    setPhotoIndex((i) => (goBack ? Math.max(0, i - 1) : Math.min(photoCount - 1, i + 1)));
+  }
 
   async function commit(action: SwipeAction) {
     if (busy.current) return;
@@ -71,6 +98,7 @@ export function SwipeCard({ profile, ref, onDecide, onExit, onBusyChange, onOpen
 
   return (
     <motion.div
+      ref={root}
       data-testid="swipe-card"
       data-profile-id={profile.id}
       className="absolute inset-0 cursor-grab touch-pan-y active:cursor-grabbing"
@@ -78,9 +106,11 @@ export function SwipeCard({ profile, ref, onDecide, onExit, onBusyChange, onOpen
       drag="x"
       dragMomentum={false}
       onDragEnd={handleDragEnd}
+      onPointerDownCapture={(e) => (down.current = { x: e.clientX, y: e.clientY })}
+      onClick={handleClick}
       initial={false}
     >
-      <ProfileCard profile={profile} eager onOpen={onOpen} />
+      <ProfileCard profile={profile} eager onOpen={onOpen} photoIndex={photoIndex} />
 
       <motion.div
         aria-hidden

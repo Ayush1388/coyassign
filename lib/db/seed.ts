@@ -1,5 +1,5 @@
 import { eq, inArray, or, sql } from "drizzle-orm";
-import { PROFILES, SELF, photoFor } from "@/db/profiles";
+import { extraPhotosFor, PROFILES, SELF, photoFor } from "@/db/profiles";
 import type { DB } from "./client";
 import { matches, messages, reports, swipes, users } from "./schema";
 
@@ -13,6 +13,7 @@ export async function seedDb(db: DB) {
     {
       ...SELF,
       photoUrl: null,
+      photos: [],
       promptQuestion: null,
       promptAnswer: null,
     },
@@ -20,6 +21,7 @@ export async function seedDb(db: DB) {
       ...p,
       college: p.college ?? null,
       photoUrl: photoFor(p.id),
+      photos: [photoFor(p.id), ...extraPhotosFor(p.id)],
       promptQuestion: prompt[0],
       promptAnswer: prompt[1],
     })),

@@ -28,11 +28,16 @@ export function ProfileCard({
   profile,
   eager,
   onOpen,
+  photoIndex = 0,
 }: {
   profile: PublicProfile;
   eager?: boolean;
   onOpen?: () => void;
+  /** Which photo of profile.photos to show (the swipe card lets you tap through them). */
+  photoIndex?: number;
 }) {
+  const photos = profile.photos.length ? profile.photos : [profile.photoUrl];
+  const current = photos[Math.min(photoIndex, photos.length - 1)] ?? null;
   const shared = new Set(profile.sharedInterests.map((s) => s.toLowerCase()));
   const interests = [...profile.interests].sort(
     (a, b) => Number(shared.has(b.toLowerCase())) - Number(shared.has(a.toLowerCase())),
@@ -45,7 +50,13 @@ export function ProfileCard({
       aria-label={`${profile.name}, ${profile.age}`}
       className="relative h-full overflow-hidden rounded-[28px] border-(length:--bw) border-line bg-ink shadow-(--pop-hero)"
     >
-      <Photo src={profile.photoUrl} name={profile.name} eager={eager} className="absolute inset-0 size-full" />
+      <Photo key={current ?? "none"} src={current} name={profile.name} eager={eager} className="absolute inset-0 size-full" />
+      {/* Preload the other photos so tapping through is instant. */}
+      {eager &&
+        photos.slice(1).map((src) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img key={src} src={src ?? ""} alt="" aria-hidden className="hidden" />
+        ))}
 
       {/* Scrims: a light one at the top for the pills, a deep one at the bottom for the text. */}
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/35 to-transparent" />
@@ -54,7 +65,15 @@ export function ProfileCard({
         className="pointer-events-none absolute inset-x-0 bottom-0 h-[68%] bg-gradient-to-t from-[#120d17] via-[#120d17]/80 to-transparent"
       />
 
-      <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
+      {photos.length > 1 && (
+        <div className="absolute inset-x-3 top-2 flex gap-1" aria-label={`Photo ${photoIndex + 1} of ${photos.length}`} data-testid="photo-bars">
+          {photos.map((_, i) => (
+            <span key={i} className={`h-1 flex-1 rounded-full ${i === photoIndex ? "bg-white" : "bg-white/40"}`} />
+          ))}
+        </div>
+      )}
+
+      <div className="absolute inset-x-3 top-5 flex items-start justify-between gap-2">
         <div className="flex gap-1.5">
           {distance && (
             <span data-testid="card-distance" className="glass inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold">
@@ -85,7 +104,7 @@ export function ProfileCard({
         )}
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 px-4 pb-4 text-white">
+      <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 px-4 pb-4 text-white" data-zone="info">
         <h2 className="flex items-center gap-2 text-[30px] leading-none font-extrabold tracking-[-0.03em]">
           <span>
             {profile.name}, <span className="font-semibold">{profile.age}</span>

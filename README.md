@@ -26,8 +26,8 @@ Requires Node 20.12+ (tested on Node 24) and pnpm. No `.env` is needed locally; 
 | `pnpm dev` | Migrate + idempotent seed, then the dev server |
 | `pnpm db:setup` | Apply migrations and seed (safe to re-run; it never deletes your swipes) |
 | `pnpm db:reset` | Clear *your* swipes and matches to replay the demo (the empty state also has a **Reset demo** button) |
-| `pnpm test` | 82 unit, API-integration and privacy tests (Vitest) |
-| `pnpm test:e2e` | 34 Playwright tests on mobile (Pixel 7) and desktop (builds and starts the app on port 3200 with its own DB) |
+| `pnpm test` | 84 unit, API-integration and privacy tests (Vitest) |
+| `pnpm test:e2e` | 40 Playwright tests on mobile (Pixel 7) and desktop (builds and starts the app on port 3200 with its own DB) |
 | `pnpm typecheck` / `pnpm build` | Type check / production build |
 
 **Demo tip:** 12 of the 32 seeded profiles have already liked you. You can't tell which (that's the point), but the third card is one of them.
@@ -43,7 +43,8 @@ Requires Node 20.12+ (tested on Node 24) and pnpm. No `.env` is needed locally; 
   - a **verified** badge
   - a **"2 things in common"** sticker, with shared interests highlighted first in pink
   - college or area, and a 2-line bio
-- **Full profile sheet** (ⓘ button or the ↑ key): a large photo, a Hinge-style prompt, "You both like…", all interests, and Like/Pass right there.
+- **Several photos per profile:** tap the right or left of the photo to flip through them (progress bars at the top), Tinder-style. Tap the name and info area to open the full profile.
+- **Full profile sheet** (tap the card, ⓘ, ••• or the ↑ key): a large photo, a Hinge-style prompt, "You both like…", all interests, and Like/Pass right there.
 - **Filters**, modelled on what Tinder, Bumble and Hinge offer:
   - **Looking for:** Tinder's six relationship goals, from 💍 long-term partner to 🎉 short-term fun, 👋 new friends and 🤔 still figuring it out. There's a "Same as me" shortcut, and cards highlight people who want the same thing as you.
   - **Distance** (2 km → Anywhere, banded) and an **age range** with a two-thumb slider.
@@ -96,7 +97,7 @@ I looked at what Tinder, Bumble and Hinge ship today (prompts, verification, sha
 | "Likes You" grid (Tinder Gold, Bumble Beeline) | ❌ Rejected | It reveals one-sided interest. This is the core privacy line. |
 | Undo / rewind | ❌ Rejected | Rewinding a PASS on someone who liked you could be used to probe who liked you. |
 | "Active now" or last-seen status | ❌ Rejected | It leaks activity patterns. Not worth it for a crush app. |
-| Read receipts | ❌ Skipped | Pressure without much value. Could be opt-in later. |
+| Read receipts | ✅ Added | ✓ delivered, blue ✓✓ seen, and "Seen" under your last message. They apply between mutual matches only, so they never reveal one-sided interest. |
 
 **Design: reverse-engineered from Coy's live app**
 

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, asc, eq, gt, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
 import type { DB } from "../db/client";
 import { matches, messages, reports, users, type UserRow } from "../db/schema";
 import { sharedWith, toMatchProfile, type MatchProfile, type MessageDTO } from "../dto";
@@ -31,12 +31,21 @@ export async function loadMatch(db: DB, userId: string, matchId: string): Promis
   return { matchId: row.id, createdAt: row.createdAt, other, viewer: await getViewer(db, userId) };
 }
 
-const toDTO = (m: { id: string; body: string; senderId: string; deliverAt: string }, userId: string): MessageDTO => ({
-  id: m.id,
-  body: m.body,
-  fromMe: m.senderId === userId,
-  createdAt: m.deliverAt,
-});
+const toDTO = (
+  m: { id: string; body: string; senderId: string; deliverAt: string; seenAt?: string | null },
+  userId: string,
+  nowIso = new Date().toISOString(),
+): MessageDTO => {
+  const fromMe = m.senderId === userId;
+  return {
+    id: m.id,
+    body: m.body,
+    fromMe,
+    createdAt: m.deliverAt,
+    // Receipts are only shown on your own messages.
+    ...(fromMe ? { status: m.seenAt && m.seenAt <= nowIso ? ("seen" as const) : ("delivered" as const) } : {}),
+  };
+};
 
 export type Conversation = {
   match: { id: string; createdAt: string; profile: MatchProfile; sharedInterests: string[]; prompt: { question: string; answer: string } | null };
@@ -50,6 +59,12 @@ export type Conversation = {
 export async function getConversation(db: DB, userId: string, matchId: string, now = new Date()): Promise<Conversation> {
   const ctx = await loadMatch(db, userId, matchId);
   const nowIso = now.toISOString();
+
+  // Opening the chat marks their delivered messages as seen (their read receipt).
+  await db
+    .update(messages)
+    .set({ seenAt: nowIso })
+    .where(and(eq(messages.matchId, matchId), eq(messages.senderId, ctx.other.id), lte(messages.deliverAt, nowIso), isNull(messages.seenAt)));
 
   const delivered = await db
     .select()
@@ -71,7 +86,7 @@ export async function getConversation(db: DB, userId: string, matchId: string, n
 
   return {
     match: { id: ctx.matchId, createdAt: ctx.createdAt, profile: toMatchProfile(ctx.other), sharedInterests: shared, prompt },
-    messages: delivered.map((m) => toDTO(m, userId)),
+    messages: delivered.map((m) => toDTO(m, userId, nowIso)),
     typing: (pending?.n ?? 0) > 0,
     starters: buildStarters(ctx.other, shared, prompt),
   };
@@ -120,8 +135,11 @@ export async function sendMessage(db: DB, userId: string, matchId: string, body:
         .get()
     )?.n ?? 0;
 
-  const mine = { id: `msg_${randomUUID()}`, matchId, senderId: userId, body, createdAt: nowIso, deliverAt: nowIso };
-  const replyAt = new Date(now.getTime() + 1800 + Math.min(body.length * 15, 1500)).toISOString();
+  const replyMs = now.getTime() + 1800 + Math.min(body.length * 15, 1500);
+  const replyAt = new Date(replyMs).toISOString();
+  // Demo: they "read" your message shortly before replying (stored ahead of time, shown once due).
+  const seenAt = new Date(Math.max(now.getTime() + 700, replyMs - 1100)).toISOString();
+  const mine = { id: `msg_${randomUUID()}`, matchId, senderId: userId, body, createdAt: nowIso, deliverAt: nowIso, seenAt };
   const reply = {
     id: `msg_${randomUUID()}`,
     matchId,
@@ -132,7 +150,7 @@ export async function sendMessage(db: DB, userId: string, matchId: string, body:
   };
 
   await db.batch([db.insert(messages).values(mine), db.insert(messages).values(reply)]);
-  return toDTO(mine, userId);
+  return toDTO(mine, userId, nowIso);
 }
 
 /** Unmatch: the conversation and the match disappear for both people. The swipe stays, so they never reappear in Discover. */

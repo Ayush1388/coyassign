@@ -11,6 +11,8 @@ export const users = sqliteTable("users", {
   name: text("name").notNull(),
   age: integer("age").notNull(),
   photoUrl: text("photo_url"),
+  /** All profile photos in order (photoUrl is the first). */
+  photos: text("photos", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
   bio: text("bio").notNull().default(""),
   city: text("city").notNull(),
   college: text("college"),
@@ -91,6 +93,8 @@ export const messages = sqliteTable(
     body: text("body").notNull(),
     createdAt: text("created_at").notNull(),
     deliverAt: text("deliver_at").notNull(),
+    /** When the recipient saw it (read receipt). Null = delivered, not seen. */
+    seenAt: text("seen_at"),
   },
   (t) => [
     index("messages_match_deliver_idx").on(t.matchId, t.deliverAt),

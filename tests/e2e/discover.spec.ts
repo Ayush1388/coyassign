@@ -315,3 +315,56 @@ test("the Liked tab lists only my own pending likes", async ({ page }) => {
   for (const id of matched) await expect(page.locator(`[data-testid=liked-item][data-profile-id="${id}"]`)).toHaveCount(0);
   await expect(page.getByTestId("count-liked")).toHaveText(String(8 - matched.length));
 });
+
+test("tapping the card flips through photos and tapping the info opens the profile", async ({ page }) => {
+  await openDiscover(page);
+  const card = topCard(page);
+  const bars = () => card.getByTestId("photo-bars").locator("span");
+  await expect(bars()).toHaveCount(3);
+  const box = (await card.boundingBox())!;
+  const active = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll("[data-testid=swipe-card] [data-testid=photo-bars] span")].findIndex(
+        (s) => !s.className.includes("bg-white/40"),
+      ),
+    );
+  expect(await active()).toBe(0);
+  await page.mouse.click(box.x + box.width * 0.8, box.y + box.height * 0.3);
+  await expect.poll(active).toBe(1);
+  await page.mouse.click(box.x + box.width * 0.2, box.y + box.height * 0.3);
+  await expect.poll(active).toBe(0);
+
+  await page.mouse.click(box.x + box.width * 0.5, box.y + box.height * 0.88);
+  const sheet = page.getByTestId("profile-sheet");
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByTestId("sheet-photo")).toHaveCount(3);
+});
+
+test("chat shows a single tick when delivered and a blue double tick when seen", async ({ page }) => {
+  for (const p of (await apiFeed(page)).slice(0, 10))
+    await page.request.post("/api/swipe", { data: { profileId: p.id, action: "LIKE" } });
+  const [m] = (await (await page.request.get("/api/matches")).json()).matches as { id: string }[];
+  await page.goto(`/discover/matches/${m.id}`);
+  await page.getByTestId("composer").fill("hello there");
+  await page.getByTestId("send").click();
+  const mine = page.getByTestId("msg-mine").first();
+  await expect(mine).toHaveAttribute("data-status", "delivered");
+  await expect(mine.getByTestId("tick-delivered")).toBeVisible();
+  await expect(mine).toHaveAttribute("data-status", "seen", { timeout: 10_000 });
+  await expect(mine.getByTestId("tick-seen")).toBeVisible();
+  await expect(page.getByTestId("msg-theirs").first()).toBeVisible({ timeout: 10_000 });
+});
+
+test("Liked cards show what you share and open the full profile", async ({ page }) => {
+  const feed = (await apiFeed(page)) as unknown as { id: string; sharedInterests: string[] }[];
+  const target = feed.find((p) => p.sharedInterests.length > 0)!;
+  await page.request.post("/api/swipe", { data: { profileId: target.id, action: "LIKE" } });
+  const matched = ((await (await page.request.get("/api/matches")).json()).matches as unknown[]).length > 0;
+  test.skip(matched, "picked a seeded liker; covered elsewhere");
+  await page.goto("/discover/liked");
+  const card = page.locator(`[data-testid=liked-item][data-profile-id="${target.id}"]`);
+  await expect(card.getByTestId("liked-shared")).toContainText("You both like");
+  await card.click();
+  await expect(page.getByTestId("profile-sheet")).toBeVisible();
+  await expect(page.getByTestId("profile-sheet")).toContainText("only find out if they like you back");
+});

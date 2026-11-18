@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Flag, Heart, MoreVertical, Send, ShieldCheck, UserX } from "lucide-react";
+import { ArrowLeft, Check, CheckCheck, Clock3, Flag, Heart, MoreVertical, Quote, SendHorizontal, ShieldCheck, UserX } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -11,7 +11,7 @@ import { VerifiedBadge } from "@/components/discover/profile-card";
 import { Photo } from "@/components/ui/photo";
 import { Sheet } from "@/components/ui/sheet";
 
-type Pending = MessageDTO & { status: "sending" | "failed" };
+type Pending = { id: string; body: string; createdAt: string; sendState: "sending" | "failed" };
 
 const REASONS = [
   ["fake_profile", "Fake profile or scam"],
@@ -38,16 +38,16 @@ export function ChatScreen({ matchId }: { matchId: string }) {
       setConvo(c);
       setError(null);
       // Drop optimistic messages the server now has.
-      setPending((p) => p.filter((m) => m.status === "failed" || !c.messages.some((s) => s.body === m.body && s.fromMe)));
+      setPending((p) => p.filter((m) => m.sendState === "failed" || !c.messages.some((s) => s.fromMe && s.body === m.body)));
     } catch (e) {
       setError(e instanceof ApiError && e.status === 404 ? "not_found" : "failed");
     }
   }, [matchId]);
 
-  // Poll while open: demo profiles reply a few seconds after you message.
+  // Poll while open: replies, typing and read receipts arrive in the background.
   useEffect(() => {
     void load();
-    const t = setInterval(() => document.visibilityState === "visible" && void load(), 1500);
+    const t = setInterval(() => document.visibilityState === "visible" && void load(), 1200);
     return () => clearInterval(t);
   }, [load]);
 
@@ -59,20 +59,14 @@ export function ChatScreen({ matchId }: { matchId: string }) {
   async function send(text: string, retryId?: string) {
     const body = text.trim();
     if (!body) return;
-    const temp: Pending = {
-      id: retryId ?? `temp_${Date.now()}`,
-      body,
-      fromMe: true,
-      createdAt: new Date().toISOString(),
-      status: "sending",
-    };
+    const temp: Pending = { id: retryId ?? `temp_${Date.now()}`, body, createdAt: new Date().toISOString(), sendState: "sending" };
     setPending((p) => [...p.filter((m) => m.id !== temp.id), temp]);
     if (!retryId) setDraft("");
     try {
       await api.send(matchId, body);
       await load();
     } catch {
-      setPending((p) => p.map((m) => (m.id === temp.id ? { ...m, status: "failed" } : m)));
+      setPending((p) => p.map((m) => (m.id === temp.id ? { ...m, sendState: "failed" } : m)));
     }
   }
 
@@ -97,11 +91,11 @@ export function ChatScreen({ matchId }: { matchId: string }) {
   if (error === "not_found") {
     return (
       <Shell>
-        <div className="m-5 sticker-hero flex flex-col items-start gap-3 bg-status! p-7">
+        <div className="m-5 flex flex-col items-start gap-3 rounded-[24px] bg-status p-7">
           <p className="display text-[28px]">This chat isn&apos;t available</p>
           <p className="text-[16px] text-muted">The match may have ended.</p>
-          <Link href="/discover/matches" className="btn-primary pressable focus-ring mt-1">
-            Back to matches
+          <Link href="/discover/chats" className="pill-primary focus-ring mt-1 h-12">
+            Back to chats
           </Link>
         </div>
       </Shell>
@@ -109,28 +103,33 @@ export function ChatScreen({ matchId }: { matchId: string }) {
   }
 
   const p = convo?.match.profile;
-  const empty = convo && convo.messages.length === 0 && pending.length === 0;
+  const messages = convo?.messages ?? [];
+  const empty = convo && messages.length === 0 && pending.length === 0;
+  const lastMineId = [...messages].reverse().find((m) => m.fromMe)?.id;
+
+  // Group consecutive messages from the same side (tighter spacing, joined corners).
+  const rows: (MessageDTO | (Pending & { fromMe: true }))[] = [...messages, ...pending.map((m) => ({ ...m, fromMe: true as const }))];
 
   return (
     <Shell>
-      <header className="flex items-center gap-3 border-b border-hairline px-4 pt-[max(12px,env(safe-area-inset-top))] pb-3">
+      <header className="flex items-center gap-3 bg-surface/95 px-3 pt-[max(10px,env(safe-area-inset-top))] pb-2.5 shadow-[0_1px_0_var(--hairline)] backdrop-blur">
         <Link href="/discover/chats" aria-label="Back to chats" className="btn-soft focus-ring shrink-0">
           <ArrowLeft className="size-5" aria-hidden />
         </Link>
         {p ? (
           <>
-            <span className="relative size-11 shrink-0 overflow-hidden rounded-full border-(length:--bw) border-line">
+            <span className="relative size-11 shrink-0 overflow-hidden rounded-full ring-2 ring-accent ring-offset-2 ring-offset-surface">
               <Photo src={p.photoUrl} name={p.name} className="absolute inset-0 size-full" eager />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 text-[18px] leading-tight font-extrabold">
+              <p className="flex items-center gap-1.5 text-[17px] leading-tight font-extrabold">
                 <span className="truncate" data-testid="chat-name">
                   {p.name}
                 </span>
                 {p.verified && <VerifiedBadge className="size-[18px]" />}
               </p>
-              <p className="truncate text-[13px] font-semibold text-muted">
-                Matched {formatDay(convo!.match.createdAt)} · {p.city}
+              <p className="truncate text-[12.5px] font-semibold text-muted">
+                {convo?.typing ? <span className="text-accent-strong">typing…</span> : `Matched ${formatDay(convo!.match.createdAt)} · ${p.city}`}
               </p>
             </div>
             <button
@@ -148,36 +147,68 @@ export function ChatScreen({ matchId }: { matchId: string }) {
         )}
       </header>
 
-      <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto px-4 py-4" aria-live="polite" data-testid="chat-log">
+      <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto bg-soft px-3.5 py-4" data-testid="chat-log">
         {convo && p && (
-          <div className="sticker mx-auto mb-5 max-w-[360px] bg-reward! p-4 text-center">
-            <p className="micro-label inline-flex items-center gap-1.5">
-              <Heart className="size-3 fill-accent text-ink" aria-hidden /> It&apos;s mutual
+          <div className="mx-auto mb-5 max-w-[360px] rounded-[24px] bg-surface p-4 text-center shadow-[0_8px_24px_-14px_rgba(21,18,29,0.35)]">
+            <div className="mx-auto flex w-fit -space-x-3">
+              <span className="relative flex size-14 items-center justify-center rounded-full bg-accent text-[15px] font-extrabold text-accent-ink ring-4 ring-surface">
+                You
+              </span>
+              <span className="relative size-14 overflow-hidden rounded-full ring-4 ring-surface">
+                <Photo src={p.photoUrl} name={p.name} className="absolute inset-0 size-full" eager />
+              </span>
+            </div>
+            <p className="mt-2 inline-flex items-center gap-1 text-[12px] font-bold tracking-[0.06em] text-accent-strong uppercase">
+              <Heart className="size-3 fill-current" aria-hidden /> It&apos;s mutual
             </p>
-            <p className="display mt-1 text-[22px]">You and {p.name} matched</p>
+            <p className="display mt-0.5 text-[20px]">You and {p.name} matched</p>
             {convo.match.sharedInterests.length > 0 && (
-              <p className="mt-1 text-[14px] font-semibold">You both like {listInterests(convo.match.sharedInterests, 3)}</p>
+              <p className="mt-1 text-[14px] text-muted">
+                You both like <b className="text-ink">{listInterests(convo.match.sharedInterests, 3)}</b>
+              </p>
             )}
             {convo.match.prompt && (
-              <p className="mt-3 rounded-[14px] border-(length:--bw) border-line bg-surface px-3 py-2 text-left text-[14px]">
-                <span className="micro-label block text-[10px] text-muted">{convo.match.prompt.question}</span>
-                {convo.match.prompt.answer}
-              </p>
+              <div className="mt-3 rounded-[16px] bg-soft px-3.5 py-2.5 text-left">
+                <span className="inline-flex items-center gap-1 text-[10.5px] font-bold tracking-[0.08em] text-muted uppercase">
+                  <Quote className="size-3" aria-hidden /> {convo.match.prompt.question}
+                </span>
+                <p className="text-[14px] font-semibold">{convo.match.prompt.answer}</p>
+              </div>
             )}
           </div>
         )}
 
-        <p className="mb-4 flex items-center justify-center gap-1.5 text-center text-[12px] font-semibold text-muted">
+        <p className="mb-4 flex items-center justify-center gap-1.5 text-center text-[11.5px] font-semibold text-muted">
           <ShieldCheck className="size-3.5" aria-hidden /> Never share OTPs, passwords or money details.
         </p>
 
-        <ul className="flex flex-col gap-2">
-          {convo?.messages.map((m) => (
-            <Bubble key={m.id} m={m} />
-          ))}
-          {pending.map((m) => (
-            <Bubble key={m.id} m={m} status={m.status} onRetry={() => void send(m.body, m.id)} />
-          ))}
+        {rows.length > 0 && (
+          <p className="mb-3 text-center">
+            <span className="rounded-full bg-surface/80 px-3 py-1 text-[11px] font-bold text-muted">Today</span>
+          </p>
+        )}
+
+        <ul className="flex flex-col">
+          {rows.map((m, i) => {
+            const prev = rows[i - 1];
+            const next = rows[i + 1];
+            const firstOfGroup = !prev || prev.fromMe !== m.fromMe;
+            const lastOfGroup = !next || next.fromMe !== m.fromMe;
+            const isPending = "sendState" in m;
+            return (
+              <Bubble
+                key={m.id}
+                m={m}
+                first={firstOfGroup}
+                last={lastOfGroup}
+                sendState={isPending ? m.sendState : undefined}
+                showSeenLabel={!isPending && m.id === lastMineId && (m as MessageDTO).status === "seen" && !pending.length}
+                onRetry={isPending ? () => void send(m.body, m.id) : undefined}
+                avatar={!m.fromMe && lastOfGroup ? p?.photoUrl ?? null : undefined}
+                name={p?.name ?? ""}
+              />
+            );
+          })}
           <AnimatePresence>
             {convo?.typing && (
               <motion.li
@@ -185,16 +216,22 @@ export function ChatScreen({ matchId }: { matchId: string }) {
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="self-start"
+                className="mt-2 flex items-end gap-2 self-start"
                 data-testid="typing"
               >
-                <span className="flex items-center gap-1 rounded-[20px] rounded-bl-md bg-soft px-4 py-3" aria-label={`${p?.name} is typing`}>
-                  {[0, 1, 2].map((i) => (
+                <span className="relative size-7 shrink-0 overflow-hidden rounded-full">
+                  {p && <Photo src={p.photoUrl} name={p.name} className="absolute inset-0 size-full" />}
+                </span>
+                <span
+                  className="flex items-center gap-1 rounded-[20px] rounded-bl-[6px] bg-surface px-4 py-3 shadow-[0_2px_6px_-3px_rgba(21,18,29,0.25)]"
+                  aria-label={`${p?.name} is typing`}
+                >
+                  {[0, 1, 2].map((d) => (
                     <motion.span
-                      key={i}
-                      className="size-2 rounded-full bg-muted"
+                      key={d}
+                      className="size-2 rounded-full bg-muted/70"
                       animate={{ y: [0, -4, 0] }}
-                      transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
+                      transition={{ duration: 0.8, repeat: Infinity, delay: d * 0.15 }}
                     />
                   ))}
                 </span>
@@ -204,8 +241,8 @@ export function ChatScreen({ matchId }: { matchId: string }) {
         </ul>
 
         {empty && convo.starters.length > 0 && (
-          <div className="mt-2" data-testid="starters">
-            <p className="micro-label mb-2 text-muted">Break the ice</p>
+          <div className="mt-3" data-testid="starters">
+            <p className="mb-2 text-[11px] font-bold tracking-[0.08em] text-muted uppercase">Break the ice</p>
             <div className="flex flex-col items-start gap-2">
               {convo.starters.map((s) => (
                 <button
@@ -215,7 +252,7 @@ export function ChatScreen({ matchId }: { matchId: string }) {
                     setDraft(s);
                     input.current?.focus();
                   }}
-                  className="focus-ring rounded-[16px] border-(length:--bw) border-line bg-surface px-3.5 py-2 text-left text-[14px] font-semibold transition-colors hover:bg-accent-soft"
+                  className="focus-ring rounded-[18px] bg-surface px-3.5 py-2.5 text-left text-[14px] font-semibold shadow-[0_2px_8px_-4px_rgba(21,18,29,0.3)] transition-colors hover:bg-accent-soft"
                 >
                   {s}
                 </button>
@@ -232,7 +269,7 @@ export function ChatScreen({ matchId }: { matchId: string }) {
       </div>
 
       <form
-        className="flex items-end gap-2 border-t border-hairline px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]"
+        className="flex items-end gap-2 bg-surface px-3 pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom))] shadow-[0_-1px_0_var(--hairline)]"
         onSubmit={(e) => {
           e.preventDefault();
           void send(draft);
@@ -256,41 +293,43 @@ export function ChatScreen({ matchId }: { matchId: string }) {
           }}
           placeholder={p ? `Message ${p.name}…` : "Message…"}
           data-testid="composer"
-          className="focus-ring max-h-32 min-h-12 flex-1 resize-none rounded-[var(--radius-input)] border-(length:--bw) border-line bg-surface px-4 py-3 text-[16px] leading-snug outline-none placeholder:text-muted"
+          className="max-h-32 min-h-12 flex-1 resize-none rounded-[24px] bg-soft px-4 py-3 text-[16px] leading-snug outline-none transition-shadow placeholder:text-muted focus:bg-surface focus:shadow-[0_0_0_2px_var(--accent)]"
         />
         <button
           type="submit"
           disabled={!draft.trim()}
           aria-label="Send"
           data-testid="send"
-          className="sticker pressable focus-ring flex size-12 shrink-0 items-center justify-center rounded-full! bg-accent!"
+          className="fab fab-like focus-ring size-12 shrink-0 disabled:opacity-35"
         >
-          <Send className="size-5 text-accent-ink" aria-hidden />
+          <SendHorizontal className="size-5 text-white" aria-hidden />
         </button>
       </form>
 
       <Sheet open={menu === "menu"} onClose={() => setMenu(null)} title="Safety & options" testId="chat-options">
-        <div className="flex flex-col gap-2.5 pt-1">
-          <button type="button" onClick={() => setMenu("unmatch")} className="btn-secondary pressable focus-ring justify-start!">
-            <UserX className="size-5" aria-hidden /> Unmatch {p?.name}
-          </button>
-          <button type="button" onClick={() => setMenu("report")} className="btn-secondary pressable focus-ring justify-start!">
-            <Flag className="size-5" aria-hidden /> Report {p?.name}
-          </button>
-          <p className="mt-1 text-[13px] font-semibold text-muted">
-            {p?.name} won&apos;t be told you unmatched or reported them.
-          </p>
+        <div className="flex flex-col gap-2 pt-1">
+          <SheetRow onClick={() => setMenu("unmatch")} icon={<UserX className="size-5" aria-hidden />}>
+            Unmatch {p?.name}
+          </SheetRow>
+          <SheetRow onClick={() => setMenu("report")} icon={<Flag className="size-5" aria-hidden />}>
+            Report {p?.name}
+          </SheetRow>
+          <p className="mt-1 text-[13px] font-semibold text-muted">{p?.name} won&apos;t be told you unmatched or reported them.</p>
         </div>
       </Sheet>
 
       <Sheet open={menu === "unmatch"} onClose={() => setMenu(null)} title={`Unmatch ${p?.name ?? ""}?`} testId="unmatch-sheet">
         <p className="text-[16px]">This deletes the chat for both of you, and {p?.name} won&apos;t appear in Discover again.</p>
-        {actionError && <p role="alert" className="mt-2 text-[14px] font-bold text-accent-strong">{actionError}</p>}
+        {actionError && (
+          <p role="alert" className="mt-2 text-[14px] font-bold text-accent-strong">
+            {actionError}
+          </p>
+        )}
         <div className="mt-5 flex gap-3">
-          <button type="button" onClick={() => setMenu(null)} className="btn-secondary pressable focus-ring flex-1">
+          <button type="button" onClick={() => setMenu(null)} className="focus-ring h-12 flex-1 rounded-full bg-soft text-[16px] font-bold hover:bg-hairline">
             Cancel
           </button>
-          <button type="button" onClick={() => void doUnmatch()} className="btn-primary pressable focus-ring flex-1" data-testid="confirm-unmatch">
+          <button type="button" onClick={() => void doUnmatch()} className="pill-primary focus-ring h-12 flex-1" data-testid="confirm-unmatch">
             Unmatch
           </button>
         </div>
@@ -298,17 +337,16 @@ export function ChatScreen({ matchId }: { matchId: string }) {
 
       <Sheet open={menu === "report"} onClose={() => setMenu(null)} title={`Report ${p?.name ?? ""}`} testId="report-sheet">
         <p className="text-[15px] text-muted">Reporting also unmatches you. Our team reviews every report.</p>
-        {actionError && <p role="alert" className="mt-2 text-[14px] font-bold text-accent-strong">{actionError}</p>}
+        {actionError && (
+          <p role="alert" className="mt-2 text-[14px] font-bold text-accent-strong">
+            {actionError}
+          </p>
+        )}
         <div className="mt-4 flex flex-col gap-2">
           {REASONS.map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => void doReport(value)}
-              className="focus-ring min-h-12 rounded-[16px] bg-soft px-4 text-left text-[16px] font-bold transition-colors hover:bg-hairline"
-            >
+            <SheetRow key={value} onClick={() => void doReport(value)}>
               {label}
-            </button>
+            </SheetRow>
           ))}
         </div>
       </Sheet>
@@ -316,39 +354,98 @@ export function ChatScreen({ matchId }: { matchId: string }) {
   );
 }
 
+function SheetRow({ onClick, icon, children }: { onClick: () => void; icon?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="focus-ring flex min-h-13 items-center gap-3 rounded-[16px] bg-soft px-4 text-left text-[16px] font-bold transition-colors hover:bg-hairline"
+    >
+      {icon}
+      {children}
+    </button>
+  );
+}
+
 /** Full-screen chat layer (the tab bar is hidden on this route). */
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-40 bg-bg">
-      <div className="mx-auto flex h-dvh max-w-[480px] flex-col">{children}</div>
+    <div className="fixed inset-0 z-40 bg-soft">
+      <div className="mx-auto flex h-dvh max-w-[480px] flex-col bg-surface">{children}</div>
     </div>
   );
 }
 
-function Bubble({ m, status, onRetry }: { m: MessageDTO; status?: "sending" | "failed"; onRetry?: () => void }) {
+/** Read receipt: 🕓 sending · ✓ delivered · ✓✓ (blue) seen. */
+function Receipt({ state }: { state: "sending" | "failed" | "delivered" | "seen" }) {
+  if (state === "sending") return <Clock3 className="size-3.5 text-muted" aria-label="Sending" />;
+  if (state === "seen") return <CheckCheck className="size-4 text-[#2f8cff]" strokeWidth={2.5} aria-label="Seen" data-testid="tick-seen" />;
+  if (state === "delivered") return <Check className="size-4 text-muted" strokeWidth={2.5} aria-label="Delivered" data-testid="tick-delivered" />;
+  return null;
+}
+
+function Bubble({
+  m,
+  first,
+  last,
+  sendState,
+  showSeenLabel,
+  onRetry,
+  avatar,
+  name,
+}: {
+  m: { id: string; body: string; fromMe: boolean; createdAt: string; status?: MessageDTO["status"] };
+  first: boolean;
+  last: boolean;
+  sendState?: "sending" | "failed";
+  showSeenLabel: boolean;
+  onRetry?: () => void;
+  avatar?: string | null;
+  name: string;
+}) {
+  const state = sendState ?? m.status ?? "delivered";
+  // Joined corners inside a group, a "tail" corner on the last bubble.
+  const mineShape = `rounded-[20px] ${first ? "" : "rounded-tr-[6px]"} ${last ? "rounded-br-[6px]" : "rounded-br-[6px]"}`;
+  const theirShape = `rounded-[20px] ${first ? "" : "rounded-tl-[6px]"} rounded-bl-[6px]`;
+
   return (
     <motion.li
       initial={{ opacity: 0, y: 8, scale: 0.98 }}
-      animate={{ opacity: status === "sending" ? 0.7 : 1, y: 0, scale: 1 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className={`flex max-w-[80%] flex-col ${m.fromMe ? "items-end self-end" : "items-start self-start"}`}
+      className={`flex max-w-[82%] items-end gap-2 ${m.fromMe ? "self-end" : "self-start"} ${first ? "mt-2.5" : "mt-0.5"}`}
       data-testid={m.fromMe ? "msg-mine" : "msg-theirs"}
+      data-status={m.fromMe ? state : undefined}
     >
-      <span
-        className={`rounded-[20px] px-4 py-2.5 text-[16px] leading-snug break-words whitespace-pre-wrap ${
-          m.fromMe
-            ? "rounded-br-md border-(length:--bw) border-line bg-accent text-accent-ink"
-            : "rounded-bl-md bg-soft text-ink"
-        }`}
-      >
-        {m.body}
-      </span>
-      <span className="mt-0.5 px-1 text-[11px] font-semibold text-muted">
-        {status === "sending" ? "Sending…" : status === "failed" ? "" : formatTime(m.createdAt)}
-        {status === "failed" && (
-          <button type="button" onClick={onRetry} className="focus-ring font-bold text-accent-strong underline">
-            Not sent. Tap to retry
-          </button>
+      {!m.fromMe && (
+        <span className="relative size-7 shrink-0 overflow-hidden rounded-full">
+          {avatar !== undefined && <Photo src={avatar} name={name} className="absolute inset-0 size-full" />}
+        </span>
+      )}
+      <span className={`flex flex-col ${m.fromMe ? "items-end" : "items-start"}`}>
+        <span
+          className={`px-3.5 py-2 text-[15.5px] leading-snug break-words whitespace-pre-wrap ${
+            m.fromMe
+              ? `${mineShape} bg-gradient-to-br from-[#ec3f7c] to-[#d81e63] text-white shadow-[0_4px_12px_-6px_rgba(216,30,99,0.7)]`
+              : `${theirShape} bg-surface text-ink shadow-[0_2px_8px_-4px_rgba(21,18,29,0.28)]`
+          } ${sendState === "sending" ? "opacity-75" : ""}`}
+        >
+          {m.body}
+        </span>
+        {last && (
+          <span className="mt-1 flex items-center gap-1 px-1 text-[11px] font-semibold text-muted">
+            {sendState === "failed" ? (
+              <button type="button" onClick={onRetry} className="focus-ring font-bold text-accent-strong underline">
+                Not sent. Tap to retry
+              </button>
+            ) : (
+              <>
+                {formatTime(m.createdAt)}
+                {m.fromMe && <Receipt state={state} />}
+                {showSeenLabel && <span className="text-[#2f8cff]">Seen</span>}
+              </>
+            )}
+          </span>
         )}
       </span>
     </motion.li>

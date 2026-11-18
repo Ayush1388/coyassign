@@ -122,3 +122,5 @@ export const PROFILES: SeedProfile[] = raw.map((p, i) => {
 });
 
 export const photoFor = (id: string) => `/profiles/${id}.jpg`;
+/** Two extra "camera roll" shots per profile (placeholder photography, stored locally). */
+export const extraPhotosFor = (id: string) => [1, 2].map((n) => `/profiles/more/${id}-${n}.jpg`);
