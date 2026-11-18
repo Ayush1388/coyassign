@@ -1,184 +1,102 @@
 # Coy Discover
 
-A swipe-based **Discover** tab built as a standalone app alongside a placeholder **Home** tab, for the Coy SDE Intern take-home.
+[![CI](https://github.com/Ayush1388/coyassign/actions/workflows/ci.yml/badge.svg)](https://github.com/Ayush1388/coyassign/actions/workflows/ci.yml)
 
-- **Part A** (two feature suggestions for Coy) is in **[FEATURES.md](FEATURES.md)**.
-- **Part B** (the Discover tab) is this app.
+A swipe-based **Discover** tab for Coy, built as a standalone app next to a blank **Home** tab. People like or pass on profiles, a match only happens when the interest is mutual, and nothing about one-sided interest is ever revealed. Built for the Coy SDE Intern take-home.
 
-![Discover, match, matches and empty state](docs/screenshots/overview.png)
+- **Part A** (two feature proposals for Coy): [FEATURES.md](FEATURES.md)
+- **Part B** (the Discover tab): this repository
+
+![Discover, profile, filters, match, chat, matches, chats and notifications](docs/screenshots/overview.png)
 
 <sub>Left to right: Discover · full profile · filters · "It's a match!" · chat · Matches · Chats · Notifications</sub>
 
+## Contents
+
+[Assignment checklist](#assignment-checklist) · [Features](#features) · [Getting started](#getting-started) · [Architecture](#architecture) · [API reference](#api-reference) · [Data model and matching](#data-model-and-matching) · [Security and privacy](#security-and-privacy) · [Testing](#testing) · [Design](#design) · [Deployment](#deployment) · [Limitations](#limitations-and-next-steps)
+
 ---
 
-## Quick start
+## Assignment checklist
+
+Every requirement from the brief, where it is implemented, and how it is verified.
+
+| Requirement | Status | Implementation and evidence |
+|---|---|---|
+| **Part A:** suggest two core features and why | ✅ | [FEATURES.md](FEATURES.md) |
+| Standalone app in a public GitHub repo | ✅ | This repository |
+| Simple tab bar with a **blank Home** and a **Discover** tab | ✅ | `app/home/page.tsx`, `components/nav/tab-bar.tsx`. An e2e test asserts Home has nothing to click. |
+| React/Next.js, mobile-first | ✅ | Next.js 16 (App Router). Designed for a 390px phone first, centred 480px column on desktop. |
+| Node backend (Express or Next API routes) | ✅ | Next.js Route Handlers in `app/api/*` |
+| JSON, SQLite or any DB; single user, no external auth | ✅ | SQLite via libSQL and Drizzle. `CURRENT_USER_ID` in `lib/auth.ts` stands in for a session. |
+| **1. Profile data:** at least 30 profiles with name, age, photo, bio, city or college, interests | ✅ | 32 profiles in `db/profiles.ts`, photos in `public/profiles/`. The seed is idempotent. |
+| Some seeded profiles already liked the user | ✅ | 12 of them, stored as real `LIKE` rows (`lib/db/seed.ts`) |
+| **2. Swipe:** one card at a time | ✅ | `components/discover/swipe-card.tsx`. The cards behind are decorative and not interactive. |
+| Swipe right to like, left to pass; drag on mobile, buttons on desktop | ✅ | Pointer drag, ✕/♥ buttons and ←/→ keys. E2E: drag right, drag left, short-drag snap-back. |
+| Smooth animations and clear feedback on each swipe | ✅ | Spring drag with tilt, LIKE/PASS stamps, exit animation, "You liked …" pop-up. A failed save springs back with Retry. |
+| A swiped profile never appears again | ✅ | Excluded server-side in SQL (`lib/services/feed.ts`). Unit, API and e2e tests, including after reload. |
+| Clear empty state | ✅ | "You're all caught up", and "No one fits your filters" with a shortcut to widen them |
+| **3. Matching:** match only when both liked | ✅ | One atomic SQL batch (`lib/services/swipe.ts`). See [How mutual matching works](#how-mutual-matching-works). |
+| "It's a match!" screen at that moment | ✅ | `match-overlay.tsx`, shown only when the server returns `matched: true` |
+| A Matches view listing all mutual matches | ✅ | `app/discover/matches`, reads only the `matches` table |
+| Never reveal who liked the user unless mutual | ✅ | See [Security and privacy](#security-and-privacy). Release-blocking payload tests. |
+| **4. APIs:** `GET /feed`, `POST /swipe`, `GET /matches` | ✅ | `app/api/{feed,swipe,matches}`. Also served at the exact paths from the brief via rewrites. |
+| Swipes and matches persist across reloads | ✅ | SQLite. Tests reopen a fresh connection and re-read the data. |
+| "Privacy edge cases" (overview) | ✅ | [Security and privacy](#security-and-privacy) |
+| "Clean, tested backend logic" (overview) | ✅ | Business logic lives in `lib/services/*`, separate from HTTP. 85 unit and integration tests plus 50 browser tests, run in CI. |
+
+---
+
+## Features
+
+**Discover**
+- A swipe deck with the next profiles stacked behind the top card.
+- Each card shows distance (rounded), a verified badge, what you have in common, what they are looking for, interests, a prompt, and several photos you can tap through.
+- A full profile sheet with a bigger gallery and Like/Pass.
+- Filters: looking for (long-term, short-term, new friends…), distance, age, verified, shared interests, interests, lifestyle and languages, with a live "Show N people" count.
+
+**Matches and chat**
+- Matches, **Liked** (only people *you* liked who have not matched yet), and Chats (Messages first, then New matches).
+- A notification panel for "You matched with …" and "… texted you".
+- Chat between matched people only, with conversation starters from shared interests, a typing indicator, and read receipts (✓ delivered, blue ✓✓ with "Seen 8:32 pm").
+- Unmatch and Report from inside a chat.
+
+**Two styles**, switchable in the header: **Coy** (default) and **Minimal**. Both are plain CSS tokens in `app/globals.css`.
+
+> The brief only requires the feed, swipes and matches. Filters, chat and the rest are extras, kept behind the same privacy rules.
+
+**Demo behaviour:** seeded profiles reply a couple of seconds after you message them so the chat feels alive. Replies are stored with a future `deliver_at`, so no background jobs are needed.
+
+---
+
+## Getting started
+
+Requires **Node 20.12+** and **pnpm**.
 
 ```bash
 pnpm install
-pnpm dev            # creates + seeds ./data/coy.db automatically, then starts Next.js
-# open http://localhost:3000 on a phone-sized window, or with DevTools device mode
+pnpm dev        # creates and seeds ./data/coy.db, then starts http://localhost:3000
 ```
 
-Requires Node 20.12+ (tested on Node 24) and pnpm. No `.env` is needed locally; see `.env.example` for options.
+Open it in a phone-sized window or DevTools device mode. 12 of the 32 seeded profiles have already liked you, and you cannot tell which ones; the third card is one of them.
 
 | Command | What it does |
 |---|---|
-| `pnpm dev` | Migrate + idempotent seed, then the dev server |
-| `pnpm db:setup` | Apply migrations and seed (safe to re-run; it never deletes your swipes) |
-| `pnpm db:reset` | Clear *your* swipes and matches to replay the demo (the empty state also has a **Reset demo** button) |
-| `pnpm test` | 84 unit, API-integration and privacy tests (Vitest) |
-| `pnpm test:e2e` | 48 Playwright tests on mobile (Pixel 7) and desktop (builds and starts the app on port 3200 with its own DB) |
-| `pnpm typecheck` / `pnpm build` | Type check / production build |
+| `pnpm dev` | Applies migrations, runs the idempotent seed, starts the dev server |
+| `pnpm db:setup` | Migrations and seed only. Safe to re-run; it never deletes your swipes. |
+| `pnpm db:reset` | Clears your swipes, matches and chats to replay the demo (also a **Reset demo** button on the empty state) |
+| `pnpm typecheck` | TypeScript, no emit |
+| `pnpm test` | 85 unit and integration tests (Vitest) |
+| `pnpm test:e2e` | 50 browser tests (Playwright, mobile and desktop). Builds and serves the app on port 3200 with its own database. |
+| `pnpm build` / `pnpm start` | Production build and server |
 
-**Demo tip:** 12 of the 32 seeded profiles have already liked you. You can't tell which (that's the point), but the third card is one of them.
+**Environment** (all optional locally, see `.env.example`):
 
----
-
-## What's included
-
-**Discover deck**
-- A compact card (max 350px) with the next profiles **stacked behind it**, peeking from the top-right corner like a real deck.
-- Each card shows:
-  - **distance** ("9 km"), as a coarse band
-  - a **verified** badge
-  - a **"2 things in common"** sticker, with shared interests highlighted first in pink
-  - college or area, and a 2-line bio
-- **Several photos per profile:** tap the right or left of the photo to flip through them (progress bars at the top), Tinder-style. Tap the name and info area to open the full profile.
-- **Full profile sheet** (tap the card, ⓘ, ••• or the ↑ key): a large photo, a Hinge-style prompt, "You both like…", all interests, and Like/Pass right there.
-- **Filters**, modelled on what Tinder, Bumble and Hinge offer:
-  - **Looking for:** Tinder's six relationship goals, from 💍 long-term partner to 🎉 short-term fun, 👋 new friends and 🤔 still figuring it out. There's a "Same as me" shortcut, and cards highlight people who want the same thing as you.
-  - **Distance** (2 km → Anywhere, banded) and an **age range** with a two-thumb slider.
-  - **Quick picks:** verified profiles only, and only people who share something with you.
-  - **Interests** (any of), **lifestyle** (drinking, smoking, workout) and **languages spoken**.
-  - A live **"Show N people"** count, because, as Bumble warns, every filter shrinks the pool. Filters are remembered per device.
-- **Drag** on touch or mouse: the card follows your finger, tilts, and shows **LIKE** / **PASS** stickers. It commits past 110px or on a quick flick, and otherwise snaps back. There are also **buttons** (✕ / ♥) and **← / → keys**.
-- **Optimistic animation, without lying.** The card flies out while the request runs. If the server fails, it springs back with a **Retry** and nothing is lost. A single-flight guard means double taps, double drags or key repeats send exactly one request.
-- Empty states for "You're all caught up" and "No one fits your filters" (with Widen filters), plus loading skeletons and error states with retry.
-
-**Matching and chat**
-- An "It's a match!" overlay appears **only** when `POST /swipe` returns `matched: true`. It shows what you both like and goes straight to **Send a message**.
-- **Matches inbox:**
-  - A "New matches · say hi" row.
-  - Conversations sorted by latest activity, each with a last-message preview and a **Your turn** marker.
-- **Chat:**
-  - Only the two matched people can read or post (anyone else gets a 404).
-  - **Conversation starters** are built from shared interests and their prompt.
-  - A typing indicator shows while a reply is on its way, and failed sends get "tap to retry".
-  - A safety reminder ("Never share OTPs…") sits above the messages.
-- **Safety:** **Unmatch** deletes the chat for both people, and **Report** (with a reason) also unmatches. Both are confirmed in in-app sheets, never browser pop-ups.
-- *Demo note:* seeded profiles reply on their own a couple of seconds after you message, so the chat feels alive. Replies are stored with a future `deliver_at`, which works on serverless without background jobs.
-
-**Layout: adapted from a design mockup, on Coy's light background**
-
-The Discover layout follows a supplied mockup: logo with icon buttons, pill section tabs, an editorial serif hero line, a full-bleed photo card with a tilted card behind, and a large glowing Like button. Some of the mockup's elements conflict with the brief or with Coy's core promise, so they were swapped for safe equivalents:
-
-| Mockup | Built as | Why |
-|---|---|---|
-| Tabs: Discover · Matches · **Likes 24** · Chats | Matches · **Liked** · Chats (Discover itself is the bottom tab) | "Likes 24" means *who liked you*, the one thing Coy never reveals. **Liked** lists the people **you** liked who haven't matched yet (`GET /api/likes/sent`). That is your own data and only you can see it. |
-| ↺ Undo · ★ Super-like | ⓘ Profile · ⚙︎ Filters | Undo would break the brief ("a profile that has been swiped on must never appear again"). A Super-like reveals one-sided interest. |
-| "12K+ active now" | Avatars of the next people in your deck + "32 new faces" | Real data instead of an invented number, and no activity tracking. |
-| Interest photo strip | The profile's prompt | There are no per-interest photos, and we don't fabricate them. |
-| 5-tab bottom bar | Home + Discover | The brief asks for Home + Discover. Matches, Liked and Chats live inside Discover. |
-| Dark background | Coy's white background | As requested. The card keeps a dark scrim so text over photos stays above 4.5:1 contrast. |
-
-**Notifications vs Chats:** the bell opens its own panel that only says what needs you ("You matched with Sana", "Maya texted you") and clears once you reply. Chats is where conversations live, with **Messages on top and New matches below**.
-
-**Read receipts:** a sent message shows 🕓 while sending, ✓ when delivered, and a blue ✓✓ with **"Seen 8:32 pm"** once they've read it.
-
-**Robust colours:** every pink surface sets a solid background colour first and the gradient on top, using plain gradients rather than newer CSS (`in oklab`, `color-mix`). If a browser ever ignores a gradient, white text still sits on pink instead of vanishing. A test checks this for chat bubbles and pop-ups.
-
-**Colour rule:** pink fills are always one deep pink (`#d81e63`) with **white** text (4.9:1). There is no dark text on pink anywhere, and shared interests are marked with a pink heart rather than a pink fill.
-
-**Feature research: what I added, and what I deliberately didn't**
-
-I looked at what Tinder, Bumble and Hinge ship today (prompts, verification, shared-interest openers, distance, filters, safety tools) and kept only what fits Coy's promise: *nobody learns you like them unless it's mutual.*
-
-| Feature (seen in) | Decision | Why |
-|---|---|---|
-| Shared interests and interest-based openers (Bumble Opening Moves / interest badges) | ✅ Added | It's the strongest reason to start a chat, and it's computed from public data only. |
-| Prompts on profiles (Hinge, Tinder's profile revamp) | ✅ Added | Gives people something real to reply to. It feeds the conversation starters. |
-| Photo-verified badge (Hinge Face Check, Tinder) | ✅ Added (seeded flag) | Trust signal. Real verification would be a selfie check. |
-| Distance | ✅ Added, **banded** | Exact distances allow triangulation, so the server only returns rounded bands and filters on the band. |
-| Distance and age filters | ✅ Added | A standard expectation. The empty state nudges people to widen filters, as Hinge does. |
-| Chat, unmatch, report | ✅ Added | Matches need somewhere to go, and safety tools are a baseline requirement. |
-| Super Like | ❌ Rejected | It tells someone you like them **before** it's mutual, which is exactly what Coy promises never to do. |
-| "Likes You" grid (Tinder Gold, Bumble Beeline) | ❌ Rejected | It reveals one-sided interest. This is the core privacy line. |
-| Undo / rewind | ❌ Rejected | Rewinding a PASS on someone who liked you could be used to probe who liked you. |
-| "Active now" or last-seen status | ❌ Rejected | It leaks activity patterns. Not worth it for a crush app. |
-| Read receipts | ✅ Added | ✓ delivered, blue ✓✓ seen, and "Seen" under your last message. They apply between mutual matches only, so they never reveal one-sided interest. |
-
-**Design: based on Coy's live app, then adjusted**
-
-The look started from Coy's own design tokens, not from guesses. **[docs/design-notes.md](docs/design-notes.md)** is a "design DNA" extracted from app.getcoy.com (its CSS variables, type scale, computed styles and four taste principles). Discover is a sibling of Coy's look rather than a copy of it:
-
-| From Coy's app | In Discover |
+| Variable | Purpose |
 |---|---|
-| **One voice:** Bricolage Grotesque for every role, hierarchy by weight | Kept. A single font family, 800 for headlines (−0.035em tracking) and 400 for body text. |
-| **Phone-shaped even on a monitor** | Kept. A 480px centred column at every viewport. |
-| Pink `#FF3D81` accent and the wordmark with a pink dot | Kept for the Like button, icons and hearts. |
-| Lilac `#E7E0FF` as the "status" surface | Kept for empty and error states. |
-| **Sticker physics:** a 2px ink edge and a hard `3px 3px 0` shadow | Kept only on the swipe card and the LIKE/PASS stamps. Everything else uses soft shadows and no outlines. |
-| Dark ink label on bright pink buttons | **Changed.** Filled pink surfaces use a deeper pink (`#D81E63`) with a **white** label (4.9:1 contrast), because dark text on pink was hard to read. |
-| Yellow and mint card surfaces | **Not used.** The match pop-up is a plain dark card with white text. |
-
-Coy's own screens (login, extra slots) use black outlines and dark-on-pink buttons, so Discover intentionally looks calmer than they do.
-
-**Two styles (switch in the header)**
-- **Coy** (default) uses the tokens above.
-- **Minimal** is a calm warm-neutral alternative.
-- Both are pure CSS tokens (`app/globals.css`). The choice is a UI preference stored in `localStorage`. Swipe and match data **never** are.
-
----
-
-## API
-
-The endpoints live under `/api/*`. They are also served at the exact paths from the brief (`/feed`, `/swipe`, `/matches`) via rewrites. Responses are JSON and `Cache-Control: no-store`.
-
-### `GET /feed`
-Returns profiles the user hasn't swiped on, computed in SQL on the server.
-```json
-{ "profiles": [ { "id": "p32", "name": "Saanvi", "age": 21, "photoUrl": "/profiles/p32.jpg",
-  "bio": "…", "city": "Mysuru", "college": null, "interests": ["Birding", "Environment", "Sketching"] } ] }
-```
-
-### `POST /swipe`
-Request body: `{ "profileId": "p31", "action": "LIKE" | "PASS" }`
-
-| Status | Body |
-|---|---|
-| `201` no match | `{ "success": true, "matched": false, "match": null }` |
-| `201` match | `{ "success": true, "matched": true, "match": { "id", "createdAt", "profile": { id, name, age, photoUrl, city, college } } }` |
-| `400` | Invalid JSON, invalid action or profileId, or unknown fields (e.g. a client-sent `matched`) |
-| `404` | Unknown profile (or yourself) |
-| `409` | Already swiped on this profile; nothing is written |
-| `500` | Generic message, no internals |
-
-Errors are always shaped `{ "error": { "code", "message" } }`.
-
-### `GET /me`
-The logged-in user's own name, area and interests (used by the filters sheet).
-
-### `GET /feed?minAge=&maxAge=&maxKm=&intents=&drinking=&smoking=&workout=&interests=&languages=&verified=1&shared=1` (all optional)
-Each profile also carries `verified`, `prompt`, a coarse `distanceKm` band (0 = under 1 km), `sharedInterests`, `intent` (+ `sameIntent`), `lifestyle` and `languages`. Every filter uses **public** profile fields only. List params are comma-separated and validated against known ids. Coordinates are never returned.
-
-### `GET /api/likes/sent`
-People *you* liked who haven't matched yet (the **Liked** tab). There is intentionally no endpoint for who liked you.
-
-### Chat
-| Endpoint | Purpose |
-|---|---|
-| `GET /api/matches/:id/messages` | `{ match, messages[], typing, starters[] }`. Members only, 404 otherwise |
-| `POST /api/matches/:id/messages` | `{ body }` (1–500 chars) returns `201 { message }` |
-| `DELETE /api/matches/:id` | Unmatch: deletes the match and its chat. The swipe stays, so they never reappear |
-| `POST /api/matches/:id/report` | `{ reason }` records a report and unmatches |
-
-### `GET /matches`
-```json
-{ "matches": [ { "id": "match_…", "createdAt": "2026-11-17T18:20:01.123Z",
-  "profile": { "id": "p31", "name": "Maya", "age": 22, "photoUrl": "…", "city": "Shillong", "college": null } } ] }
-```
-
-`POST /api/dev/reset` is a demo helper that clears the current user's swipes and matches. It is always on in dev, and in production only with `DEMO_RESET=true`.
+| `DATABASE_URL` | `file:./data/coy.db` locally, a `libsql://…` URL for Turso |
+| `DATABASE_AUTH_TOKEN` | Turso token (`TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` are also read) |
+| `DEMO_RESET` | `true` enables `POST /api/dev/reset` in production. It is always on in development. |
 
 ---
 
@@ -186,113 +104,212 @@ People *you* liked who haven't matched yet (the **Liked** tab). There is intenti
 
 ```
 app/
-  api/{feed,swipe,matches}/route.ts   thin HTTP layer: validate → service → DTO → JSON
-  discover/page.tsx, discover/matches/page.tsx, home/page.tsx
-components/discover/                  swipe-card (gestures), discover-screen (state), match-overlay, profile-card
+  api/                     HTTP layer: validate (zod) → service → DTO → JSON
+  home, discover/...       pages (Home is blank by design)
+components/
+  discover/  matches/  chat/  nav/  ui/  theme/
 lib/
-  services/{feed,swipe,matches}.ts    business logic; takes a db handle, so it is unit-testable
-  dto.ts                              privacy allow-lists: the only way profiles leave the server
-  validation.ts                       zod schema for POST /swipe (.strict())
-  db/{schema,client,seed}.ts          Drizzle schema, libSQL client, idempotent seed/reset
-  auth.ts                             CURRENT_USER_ID = "me" (single logged-in user, per the brief)
-db/profiles.ts, db/setup.ts           seed data (32 profiles) and the migrate+seed script
-drizzle/                              generated SQL migrations
-tests/{unit,integration,e2e}/
+  services/                business logic (feed, swipe, matches, chat, likes); takes a db handle, so it is unit-testable
+  dto.ts                   allow-lists: the only way profile data leaves the server
+  validation.ts            zod schemas (strict)
+  http.ts                  JSON helpers, one error shape, JSON-only body reader
+  geo.ts                   distance bands and shared interests
+  db/                      Drizzle schema, libSQL client, idempotent seed and reset
+db/                        seed data and the migrate-and-seed script
+drizzle/                   generated SQL migrations
+tests/                     unit, integration, e2e
 ```
 
-**Stack:** Next.js 16 (App Router, Route Handlers), React 19, TypeScript, Tailwind CSS 4, Motion (Framer Motion), Zod, Drizzle ORM, SQLite via libSQL, Vitest and Playwright.
+**Stack:** Next.js 16, React 19, TypeScript, Tailwind CSS 4, Motion, Zod, Drizzle ORM, SQLite (libSQL), Vitest, Playwright.
 
-**Why libSQL and Drizzle rather than Prisma:** it's the same SQLite code everywhere. Locally it's a file (`file:./data/coy.db`). For a hosted demo, the same code points at Turso (hosted SQLite) with just `DATABASE_URL` and `DATABASE_AUTH_TOKEN`, which matters because a SQLite *file* doesn't persist on serverless hosts. There are no codegen or engine binaries.
+**Why libSQL and Drizzle:** the same code runs against a local SQLite file and against Turso (hosted SQLite). That matters because a SQLite *file* does not persist on serverless hosts, and it avoids code generation and native engine binaries.
 
 ---
 
-## Data model
+## API reference
+
+Endpoints live under `/api/*`. The three from the brief are also served at `/feed`, `/swipe` and `/matches` via rewrites. Responses are JSON with `Cache-Control: no-store`.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/feed` | Profiles not yet swiped on. Optional filters: `minAge`, `maxAge`, `maxKm`, `intents`, `drinking`, `smoking`, `workout`, `interests`, `languages`, `verified`, `shared` |
+| `POST` | `/swipe` | Record `LIKE` or `PASS`. Returns whether it created a match. |
+| `GET` | `/matches` | Mutual matches only |
+| `GET` | `/api/me` | The current user's basics and the available filter options |
+| `GET` | `/api/likes/sent` | People *you* liked who have not matched yet. There is deliberately no "who liked you" endpoint. |
+| `GET` `POST` | `/api/matches/:id/messages` | Read or send messages (members of the match only) |
+| `DELETE` | `/api/matches/:id` | Unmatch (deletes the chat) |
+| `POST` | `/api/matches/:id/report` | Report a match (also unmatches) |
+| `POST` | `/api/dev/reset` | Demo helper. Always on in development, in production only with `DEMO_RESET=true`. |
+
+`POST /swipe` takes `{ "profileId": "p31", "action": "LIKE" | "PASS" }`:
+
+| Status | Meaning | Body |
+|---|---|---|
+| `201` | Recorded, no match | `{ "success": true, "matched": false, "match": null }` |
+| `201` | Recorded, it is a match | `{ "success": true, "matched": true, "match": { id, createdAt, profile, sharedInterests, … } }` |
+| `400` | Malformed JSON, invalid `action` or `profileId`, or unknown fields (for example a client-sent `matched`) | error |
+| `404` | Unknown profile (or yourself) | error |
+| `409` | Already swiped on this profile; nothing is written | error |
+| `415` | Content type is not `application/json` | error |
+| `500` | Unexpected failure, generic message | error |
+
+Every error has the same shape: `{ "error": { "code", "message" } }`.
+
+A feed profile contains only: `id, name, age, photoUrl, photos, bio, city, college, interests, verified, prompt, distanceKm, sharedInterests, intent, sameIntent, lifestyle, languages`.
+
+---
+
+## Data model and matching
 
 ```sql
-users   (id PK, name, age, photo_url, bio, city, college, interests JSON,
-         prompt_question, prompt_answer, verified, lat, lng /* private */, created_at)
-swipes  (id PK, swiper_id → users, target_id → users, action, created_at,
-         UNIQUE(swiper_id, target_id),
-         CHECK(action IN ('LIKE','PASS')), CHECK(swiper_id <> target_id))
-matches (id PK, user_a_id → users, user_b_id → users, created_at,
-         UNIQUE(user_a_id, user_b_id), CHECK(user_a_id < user_b_id))
-messages(id PK, match_id → matches, sender_id → users, body CHECK(1..1000 chars),
-         created_at, deliver_at)          -- visible only once deliver_at <= now
-reports (id PK, reporter_id → users, reported_id → users, reason, created_at)
+users    (id PK, name, age, photo_url, photos JSON, bio, city, college, interests JSON,
+          prompt_question, prompt_answer, intent, drinking, smoking, workout, languages JSON,
+          verified, lat, lng /* private, never serialised */, created_at)
+swipes   (id PK, swiper_id → users, target_id → users, action, created_at,
+          UNIQUE(swiper_id, target_id), CHECK(action IN ('LIKE','PASS')), CHECK(swiper_id <> target_id))
+matches  (id PK, user_a_id → users, user_b_id → users, created_at,
+          UNIQUE(user_a_id, user_b_id), CHECK(user_a_id < user_b_id))
+messages (id PK, match_id → matches, sender_id → users, body CHECK(1..1000 chars),
+          created_at, deliver_at, seen_at)
+reports  (id PK, reporter_id → users, reported_id → users, reason, created_at)
 ```
 
-- The logged-in user (`me`) is a normal row in `users`. It is excluded from the feed.
-- **"Profile X has already liked you" is not a flag on the profile.** It is a real row in `swipes`: `(swiper = X, target = me, LIKE)`, seeded for 12 profiles. Keeping who-liked-whom out of the `users` table means a careless `select *` on profiles can't leak it, and matching becomes the same symmetric check a real multi-user system would use.
-- Matches store the pair in canonical order (`a < b`). Together with the `UNIQUE` index, that makes a duplicate match impossible at the database level, regardless of who liked first.
+- The logged-in user (`me`) is a normal row in `users` and is excluded from the feed.
+- **"Profile X already liked you" is not a flag on the profile.** It is a real row in `swipes` (`swiper = X, target = me, LIKE`). Keeping who-liked-whom out of `users` means a careless `select *` on profiles cannot leak it, and matching is the same symmetric check a real multi-user system would use.
+- Matches are stored with the pair in canonical order (`a < b`), so the `UNIQUE` index makes a duplicate match impossible no matter who liked first.
 
-## How mutual matching works
+### How mutual matching works
 
 `POST /swipe` runs **two statements in one atomic batch** (a single SQLite transaction):
 
-1. `INSERT INTO swipes … ON CONFLICT DO NOTHING RETURNING id`. If nothing was inserted, the user already swiped this profile, so the endpoint returns **409**. That includes concurrent duplicate requests, which the `UNIQUE` index serialises.
+1. `INSERT INTO swipes … ON CONFLICT DO NOTHING RETURNING id`. If nothing is inserted, the user already swiped on this profile, so the endpoint returns `409`. Concurrent duplicate requests are serialised by the `UNIQUE` index.
 2. ```sql
    INSERT INTO matches (id, user_a_id, user_b_id)
    SELECT …
    WHERE EXISTS (my LIKE of them) AND EXISTS (their LIKE of me)
    ON CONFLICT DO NOTHING RETURNING id
    ```
-   The condition reads the **stored** swipes, not the request. So a PASS, a one-way LIKE, or a LIKE retried after an earlier PASS can never create a match.
+   The condition reads the **stored** swipes, never the request. A PASS, a one-way LIKE, or a LIKE retried after an earlier PASS can never create a match.
 
-`matched` is `true` only if step 2 inserted a row. `GET /matches` reads only the `matches` table, so one-way interest in either direction never appears there.
+`matched` is `true` only if step 2 inserted a row. `GET /matches` reads only the `matches` table, so one-sided interest never appears there.
 
-## Privacy decisions
+---
 
-"Never reveal who has liked the user unless it is mutual" is enforced on the **server**, and tested at the payload level:
+## Security and privacy
+
+The brief calls out privacy edge cases, and Coy's whole promise is that **nobody learns you like them unless it is mutual**. Everything below is enforced on the server and covered by tests.
+
+### 1. The core promise: one-sided interest is never revealed
 
 | Risk | Mitigation |
 |---|---|
-| Incoming-like data leaking in a profile payload | Explicit DTO allow-lists (`lib/dto.ts`). DB rows are never spread into responses. Who-liked-whom isn't even on the profile table. |
-| **Feed order as a side channel** (e.g. likers shown first) | The feed is a stable hash shuffle of profile ids, independent of incoming likes. A test asserts the order is identical with and without the incoming likes. |
-| **PASS response as a side channel** | The same statements run for LIKE and PASS, and a test asserts PASS returns *byte-identical* JSON for someone who liked you and someone who didn't. |
-| Error messages as a side channel | 409/404 messages are generic; a test asserts identical bytes. 500s hide internals. Logs record only error messages, never request bodies. |
-| Client claiming a match | Zod `.strict()` rejects unknown fields like `matched`, and matching is decided entirely in SQL. |
-| A "N people liked you" counter | Deliberately not built: in a small pool, a counter plus swiping can leak identities. |
-| **Location triangulation** | `lat`/`lng` never leave the server. Distance is a rounded band (whole km under 10, nearest 5 under 50, and so on), and the distance filter also compares bands, so binary-searching `maxKm` can't recover an exact distance. A test scans the payload for coordinates. |
-| Reading someone else's chat | Every chat query is scoped to "a match I'm a member of". Unknown, other people's and unmatched ids all return the same 404. |
+| Incoming-like data in a profile payload | Explicit allow-list DTOs (`lib/dto.ts`). Database rows are never spread into responses. Who-liked-whom is not stored on the profile at all. |
+| **Feed order as a side channel** (likers shown first) | The feed is a stable hash shuffle of profile ids, independent of incoming likes. A test asserts the order is identical with and without the incoming likes. |
+| **PASS response as a side channel** | LIKE and PASS run the same statements, and a test asserts PASS returns *byte-identical* JSON for someone who liked you and someone who did not. |
+| **Error responses as a side channel** | `409` and `404` bodies are generic, and a test asserts identical bytes for both cases. |
+| A client claiming a match | Request bodies are validated with `.strict()`, so a field like `matched` is rejected, and matching is decided only in SQL. |
+| "N people liked you" counters, a likes-you list, Super Like, undo | Deliberately not built. Each one reveals or lets you probe one-sided interest. |
+| **Location triangulation** | `lat` and `lng` never leave the server. Distance is a rounded band, and the distance filter compares bands, so binary-searching the filter cannot recover an exact distance. A test scans payloads for coordinates. |
+| Reading or writing someone else's chat | Every chat query is scoped to "a match I belong to". Unknown, other people's and unmatched ids all return the same `404`. |
+
+### 2. Data integrity
+
+- `UNIQUE` and `CHECK` constraints in the schema (one swipe per pair, no self-swipes, canonical match pairs, bounded message length), so the guarantees hold even if application code is wrong.
+- The swipe and its match are written in one atomic batch.
+- A concurrency test fires five identical swipes at once and asserts exactly one swipe and one match.
+
+### 3. Input validation and injection
+
+- Every input is validated with Zod: bodies, query strings and route ids. Schemas are `.strict()`, ids are pattern-checked, and strings and lists have length limits.
+- All SQL goes through Drizzle or bound parameters, so there is no string-built SQL.
+- React escapes rendered text. `dangerouslySetInnerHTML` is used once, for a constant theme script with no user data.
+- Errors have one shape and never include stack traces or database details. Logs contain error messages only, never request bodies or matching data.
+
+### 4. Browser and transport hardening
+
+- Every response sends `X-Content-Type-Options: nosniff`, a `Referrer-Policy` and a `Permissions-Policy` that denies camera, microphone and location. In production it also sends a **Content-Security-Policy** (same-origin only, no framing, no plugins), `X-Frame-Options: DENY` and `Strict-Transport-Security`. The `X-Powered-By` header is removed. An e2e test checks these.
+- **CSRF:** write endpoints accept only `Content-Type: application/json` (`415` otherwise). A cross-site form cannot send that content type, and a cross-origin `fetch` with it needs a CORS preflight that this API never grants.
+- API responses are `Cache-Control: no-store`, so private data is not cached.
+
+### 5. Secrets and configuration
+
+- No secrets are committed. `.env` is git-ignored and `.env.example` documents the variables. The Turso token is read from the environment only.
+- The demo reset endpoint is disabled in production unless `DEMO_RESET=true`.
+
+### 6. Dependencies
+
+- The lockfile is committed and CI installs with `--frozen-lockfile`. Dependabot is configured for npm and GitHub Actions.
+- `pnpm audit --prod` reports **no known vulnerabilities**. Two advisories remain in development-only tooling (Vitest's glob matcher and the migration generator's bundled esbuild). They never ship with the app.
+
+### 7. Out of scope for this assignment
+
+Real authentication and sessions, rate limiting, abuse moderation, audit logging, encryption at rest and account deletion flows. The brief asks for a single logged-in user with no external auth, so `CURRENT_USER_ID` stands in for a session. See [Limitations](#limitations-and-next-steps).
 
 ---
 
-## Tests
+## Testing
 
-- **Unit** (`tests/unit`):
-  - Validation edge cases (bad actions, injection-like ids, client-claimed matches).
-  - Matching rules: mutual, one-way, pass-on-liker, pass-then-like.
-  - Duplicate rejection writes nothing, and 5 concurrent duplicate swipes produce exactly 1 swipe and 1 match.
-  - DB-level constraints.
-  - Feed exclusion and stability.
-- **API integration** (`tests/integration/api.test.ts`):
-  - The real route handlers against a temp SQLite file: status codes, response shapes and `no-store`.
-  - Persistence across a fresh DB connection.
-- **Privacy, release-blocking** (`tests/integration/privacy.test.ts`):
-  - Deep-scans every key in the feed and matches payloads against allow-lists.
-  - Feed-order independence, byte-identical PASS/409 responses, and no match on one-sided interest.
-- **E2E** (`tests/e2e`, Playwright, mobile and desktop):
-  - Tab navigation, card rendering, the like/pass buttons, and drag right, drag left and short-drag snap-back with real pointer events.
-  - The match overlay leading to the Matches list, and one-sided interest never shown.
-  - A double-click sends a single request, and a failed swipe restores the card and the retry works.
-  - The empty state, reload persistence, and the theme switch.
+85 unit and integration tests and 50 browser tests. All of them run in CI (`.github/workflows/ci.yml`: typecheck, unit tests, build, then Playwright).
+
+| Layer | Where | What it proves |
+|---|---|---|
+| **Unit** | `tests/unit` | Validation edge cases (bad actions, injection-like ids, client-claimed matches). Matching rules: mutual, one-way, pass-on-a-liker, pass-then-like. Duplicates write nothing, and five concurrent duplicates create one swipe and one match. Database constraints. Feed exclusion, stability and filters. Distance bands. Chat access control, unmatch, report and read receipts. |
+| **API integration** | `tests/integration/api.test.ts` | The real route handlers against a temporary SQLite file: status codes, response shapes, `no-store`, `415` for non-JSON bodies, and persistence across a fresh connection. |
+| **Privacy (release-blocking)** | `tests/integration/privacy.test.ts` | Every key in feed and matches payloads against allow-lists. No coordinates anywhere. Feed order independent of incoming likes. A liker never appears in matches before reciprocity. Byte-identical PASS and `409` responses. A one-way like returns no match data. |
+| **End to end** | `tests/e2e` | A production build, driven by a real browser on mobile (Pixel 7) and desktop. Navigation and the blank Home, drag right, drag left and snap-back, buttons, double-click sends one request, a failed swipe restores the card, the match flow, matches, chat with delivered and seen ticks, the empty state, reload persistence, filters, notifications, security headers, and colour regression checks. |
+
+```bash
+pnpm test        # unit and integration
+pnpm test:e2e    # browser tests (builds the app first)
+```
 
 ---
 
-## Deploying (Vercel + Turso)
+## Design
 
-A SQLite *file* doesn't persist on serverless hosts, so the hosted demo uses Turso (hosted SQLite, same libSQL code):
+The look started from Coy's own design tokens (measured from the live app, see [docs/design-notes.md](docs/design-notes.md)). Discover is a sibling of Coy's style rather than a copy of it.
 
-1. Import the GitHub repo in Vercel. The framework is detected as Next.js.
-2. In the Vercel project, open **Storage → Marketplace → Turso** and create a database. This injects `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`, which the app reads automatically. `DATABASE_URL` and `DATABASE_AUTH_TOKEN` also work.
-3. Optionally, set `DEMO_RESET=true` so reviewers get the **Reset demo** button.
-4. Redeploy. The `vercel-build` script runs migrations and the idempotent seed against Turso before `next build`.
+| From Coy's app | In Discover |
+|---|---|
+| One typeface (Bricolage Grotesque), hierarchy by weight | Kept |
+| A phone-shaped column even on a monitor | Kept (480px) |
+| Pink accent and the wordmark with a pink dot | Kept |
+| Lilac as the "status" surface | Kept for empty and error states |
+| 2px ink edge and hard shadow ("sticker" look) | Kept on the swipe card and LIKE/PASS stamps only. Everything else uses soft shadows. |
+| Dark label on bright pink buttons | **Changed.** Filled pink surfaces use a deeper pink (`#D81E63`) with a white label (4.9:1 contrast). |
+| Yellow and mint card surfaces | Not used |
 
-## Known limitations
+Pink surfaces set a solid background colour first and layer any gradient on top, using plain gradients, so white text can never end up on a missing background in an older browser. A test checks this for chat bubbles and pop-ups.
 
-- **Single user by design** (per the brief): `CURRENT_USER_ID` stands in for a session. A hosted demo is therefore one shared account; use **Reset demo** to replay it.
-- Seeded profiles never swipe "live": incoming interest is fixed seed data.
-- The feed returns the whole remaining pool. A real product would paginate and rank the feed (with the same "no incoming-like signal" rule).
-- There is no undo or rewind. That is deliberate, because rewinding a PASS on someone who liked you needs careful privacy semantics.
-- Photos are placeholders (portraits from pravatar.cc, scenery from picsum.photos), bundled locally so the demo never shows broken images. Replace them before any real use. An initials fallback covers load failures.
-- This is not production-hardened: there is no auth, rate limiting or moderation.
+**Product decisions.** Before building, I looked at what Tinder, Bumble and Hinge ship and kept only what fits Coy's promise:
+
+| Feature | Decision | Why |
+|---|---|---|
+| Shared interests and interest-based openers | ✅ Added | A strong reason to start a chat, computed from public data only |
+| Profile prompts, verified badge | ✅ Added | Trust and something to talk about |
+| Distance (rounded) and filters | ✅ Added | A standard expectation, kept private by rounding |
+| Chat, unmatch, report, read receipts | ✅ Added | Matches need somewhere to go. Receipts exist between mutual matches only. |
+| Likes-you grid, Super Like, undo, "active now" | ❌ Rejected | Each one reveals or lets you probe one-sided interest, or leaks activity |
+
+---
+
+## Deployment
+
+A SQLite file does not persist on serverless hosts, so the hosted demo uses Turso (hosted SQLite, same libSQL code):
+
+1. Import the repo in Vercel (Next.js is detected).
+2. Under **Storage → Marketplace**, add **Turso**. It injects `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`, which the app reads automatically.
+3. Optionally set `DEMO_RESET=true` to show the **Reset demo** button.
+4. Deploy. The `vercel-build` script migrates and seeds the database before `next build`.
+
+---
+
+## Limitations and next steps
+
+- **Single user by design.** A hosted demo is one shared account; use **Reset demo** to replay it.
+- Seeded profiles never swipe "live": their interest in you is fixed seed data, and their chat replies are canned.
+- The feed returns the whole remaining pool. A real product would paginate and rank it, with the same "no incoming-like signal" rule.
+- No authentication, rate limiting or moderation (see [Security and privacy](#7-out-of-scope-for-this-assignment)).
+- Photos are placeholders (portraits from pravatar.cc, scenery from picsum.photos), stored locally so the demo never shows broken images. Replace them before any real use.
+- Verification is a seeded flag. A real version would use a selfie check.
