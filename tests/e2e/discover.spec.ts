@@ -67,8 +67,9 @@ test("like and pass buttons advance the deck with feedback", async ({ page }) =>
   await openDiscover(page);
   const first = await topId(page);
   await page.getByTestId("pass-button").click();
-  await expect(page.getByTestId("toast")).toContainText("Passed on");
   await waitForNextCard(page, first);
+  // Passing is quiet: no toast.
+  await expect(page.getByTestId("toast")).toHaveCount(0);
 
   const second = await topId(page);
   await page.getByTestId("like-button").click();

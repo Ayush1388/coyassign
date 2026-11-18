@@ -118,11 +118,9 @@ export function DiscoverScreen({ canReset }: { canReset: boolean }) {
       if (result.matched) {
         setMatch(result.match);
         setToast(null);
-      } else {
-        showToast({
-          tone: action === "LIKE" ? "like" : "pass",
-          text: action === "LIKE" ? `You liked ${profile.name}` : `Passed on ${profile.name}`,
-        });
+      } else if (action === "LIKE") {
+        // A pass needs no toast: the PASS stamp and the card leaving left are feedback enough.
+        showToast({ tone: "like", text: `You liked ${profile.name}` });
       }
     },
     [showToast, refreshCounts],
