@@ -11,6 +11,8 @@ const TABS = [
 
 export function TabBar() {
   const pathname = usePathname();
+  // Chats are full-screen, like every messaging app.
+  if (/^\/discover\/matches\/[^/]+$/.test(pathname)) return null;
   return (
     <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-(--tabbar) backdrop-blur-md">
       <ul className="mx-auto flex max-w-[480px] gap-2 px-5 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))]">

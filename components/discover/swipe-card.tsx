@@ -18,6 +18,8 @@ type Props = {
   /** Called once the card has fully left the screen and the server confirmed the swipe. */
   onExit: (action: SwipeAction, result: SwipeResponse) => void;
   onBusyChange?: (busy: boolean) => void;
+  /** Opens the full profile sheet. */
+  onOpen?: () => void;
 };
 
 /**
@@ -27,7 +29,7 @@ type Props = {
  * - If the server rejects or fails, it springs back and the profile is NOT lost.
  * - A ref guard makes double taps, double drags and key repeats send exactly one request.
  */
-export function SwipeCard({ profile, ref, onDecide, onExit, onBusyChange }: Props) {
+export function SwipeCard({ profile, ref, onDecide, onExit, onBusyChange, onOpen }: Props) {
   const x = useMotionValue(0);
   const reduceMotion = useReducedMotion();
   const rotate = useTransform(x, [-260, 0, 260], reduceMotion ? [0, 0, 0] : [-12, 0, 12]);
@@ -78,7 +80,7 @@ export function SwipeCard({ profile, ref, onDecide, onExit, onBusyChange }: Prop
       onDragEnd={handleDragEnd}
       initial={false}
     >
-      <ProfileCard profile={profile} eager />
+      <ProfileCard profile={profile} eager onOpen={onOpen} />
 
       <motion.div
         aria-hidden

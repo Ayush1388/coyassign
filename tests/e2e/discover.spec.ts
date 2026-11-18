@@ -117,10 +117,22 @@ test("mutual like shows It's a match and appears in Matches", async ({ page }) =
   await expect(overlay(page)).toContainText(matchedName!);
   await expect(page.getByTestId("match-count")).toHaveText("1");
 
-  await overlay(page).getByRole("link", { name: "See matches" }).click();
+  // Straight into the chat from the celebration.
+  await page.getByTestId("send-message").click();
+  await expect(page).toHaveURL(/\/discover\/matches\/match_/);
+  await expect(page.getByTestId("chat-name")).toHaveText(matchedName!);
+  await expect(page.getByTestId("starters")).toBeVisible();
+
+  await page.getByTestId("composer").fill("Hey! Loved your profile");
+  await page.getByTestId("send").click();
+  await expect(page.getByTestId("msg-mine")).toContainText("Hey! Loved your profile");
+  await expect(page.getByTestId("msg-theirs").first()).toBeVisible({ timeout: 10_000 });
+
+  await page.getByRole("link", { name: "Back to matches" }).click();
   await expect(page).toHaveURL(/\/discover\/matches$/);
   await expect(page.getByTestId("match-item")).toHaveCount(1);
   await expect(page.getByTestId("match-item")).toContainText(matchedName!);
+  await expect(page.getByTestId("match-item")).toContainText("Your turn");
 });
 
 test("one-sided interest never shows in Matches", async ({ page }) => {
@@ -204,4 +216,63 @@ test("the style switch toggles themes and is remembered", async ({ page }) => {
   await expect(page.locator("html")).toHaveAttribute("data-theme", "minimal");
   await page.getByTestId("theme-toggle").click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "coy");
+});
+
+test("cards show distance and what you have in common, with the deck stacked behind", async ({ page }) => {
+  await openDiscover(page);
+  await expect(topCard(page).getByTestId("card-distance")).toContainText(/km/);
+  await expect(page.getByTestId("stack-card")).toHaveCount(2);
+  // At least one of the first few cards shares an interest with the user.
+  const feed = (await (await page.request.get("/api/feed")).json()).profiles as { sharedInterests: string[] }[];
+  expect(feed.slice(0, 5).some((p) => p.sharedInterests.length > 0)).toBe(true);
+});
+
+test("the full profile sheet opens and can like from there", async ({ page }) => {
+  await openDiscover(page);
+  const first = await topId(page);
+  await page.getByTestId("open-profile").click();
+  const sheet = page.getByTestId("profile-sheet");
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByRole("region", { name: "Prompt" })).toBeVisible();
+  await sheet.getByRole("button", { name: "Like" }).click();
+  await expect(sheet).toBeHidden();
+  await waitForNextCard(page, first);
+  expect((await apiFeed(page)).map((p) => p.id)).not.toContain(first);
+});
+
+test("filters narrow the feed and are remembered", async ({ page }) => {
+  await openDiscover(page);
+  await page.getByTestId("filters-button").click();
+  const slider = page.getByTestId("distance-slider");
+  await slider.focus();
+  await slider.press("Home"); // 5 km
+  await slider.press("ArrowRight"); // 10 km
+  await expect(page.getByTestId("distance-value")).toHaveText("10 km");
+  await page.getByTestId("apply-filters").click();
+  await expect(page.getByTestId("filters-sheet")).toBeHidden();
+
+  const remaining = await page.getByTestId("remaining").textContent();
+  const n = Number(remaining!.split(" ")[0]);
+  expect(n).toBeGreaterThan(0);
+  expect(n).toBeLessThan(TOTAL);
+  const near = (await (await page.request.get("/api/feed?maxKm=10")).json()).profiles;
+  expect(n).toBe(near.length);
+
+  await page.reload();
+  await expect(page.getByTestId("remaining")).toHaveText(remaining!);
+  await expect(page.getByRole("button", { name: "Filters (on)" })).toBeVisible();
+});
+
+test("unmatching from a chat removes the match", async ({ page }) => {
+  // Create a match through the API: like every profile, which matches the seeded likers.
+  for (const p of await apiFeed(page)) await page.request.post("/api/swipe", { data: { profileId: p.id, action: "LIKE" } });
+  const before = (await (await page.request.get("/api/matches")).json()).matches as { id: string }[];
+  expect(before.length).toBeGreaterThan(0);
+
+  await page.goto(`/discover/matches/${before[0].id}`);
+  await page.getByTestId("chat-menu").click();
+  await page.getByRole("button", { name: /^Unmatch/ }).click();
+  await page.getByTestId("confirm-unmatch").click();
+  await expect(page).toHaveURL(/\/discover\/matches$/);
+  await expect(page.getByTestId("match-item")).toHaveCount(before.length - 1);
 });

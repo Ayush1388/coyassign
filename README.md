@@ -7,7 +7,7 @@ A swipe-based **Discover** tab built as a standalone app alongside a placeholder
 
 ![Discover, match, matches and empty state](docs/screenshots/overview.png)
 
-<sub>Left to right: Discover card · "It's a match!" · Matches · Empty state (all in the Coy style) · Discover in the Minimal style</sub>
+<sub>Left to right: Discover deck · full profile · "It's a match!" · chat with starters · chat with reply · matches inbox · filters</sub>
 
 ---
 
@@ -26,8 +26,8 @@ Requires Node 20.12+ (tested on Node 24) and pnpm. No `.env` is needed locally; 
 | `pnpm dev` | Migrate + idempotent seed, then the dev server |
 | `pnpm db:setup` | Apply migrations and seed (safe to re-run; it never deletes your swipes) |
 | `pnpm db:reset` | Clear *your* swipes and matches to replay the demo (the empty state also has a **Reset demo** button) |
-| `pnpm test` | 52 unit, API-integration and privacy tests (Vitest) |
-| `pnpm test:e2e` | 24 Playwright tests on mobile (Pixel 7) and desktop (builds and starts the app on port 3200 with its own DB) |
+| `pnpm test` | 71 unit, API-integration and privacy tests (Vitest) |
+| `pnpm test:e2e` | 32 Playwright tests on mobile (Pixel 7) and desktop (builds and starts the app on port 3200 with its own DB) |
 | `pnpm typecheck` / `pnpm build` | Type check / production build |
 
 **Demo tip:** 12 of the 32 seeded profiles have already liked you. You can't tell which (that's the point), but the third card is one of them.
@@ -36,17 +36,49 @@ Requires Node 20.12+ (tested on Node 24) and pnpm. No `.env` is needed locally; 
 
 ## What's included
 
-**Swipe experience**
-- One card at a time, with the next card peeking behind it.
-- **Drag** on touch or mouse: the card follows your finger, tilts, and shows **LIKE** / **PASS** stamps. It commits past 110px or on a quick flick, and otherwise snaps back.
-- **Buttons** (✕ / ♥) and **← / → keys** on desktop.
-- Clear feedback on every swipe: a stamp, an exit direction and a toast ("You liked Maya" / "Passed on Raghav"). A swiped profile never appears again.
+**Discover deck**
+- A compact card (max 350px) with the next profiles **stacked behind it**, peeking from the top-right corner like a real deck.
+- Each card shows:
+  - **distance** ("9 km"), as a coarse band
+  - a **verified** badge
+  - a **"2 things in common"** sticker, with shared interests highlighted first in pink
+  - college or area, and a 2-line bio
+- **Full profile sheet** (ⓘ button or the ↑ key): a large photo, a Hinge-style prompt, "You both like…", all interests, and Like/Pass right there.
+- **Filters:** max distance (5 km → Anywhere) and age range, remembered per device.
+- **Drag** on touch or mouse: the card follows your finger, tilts, and shows **LIKE** / **PASS** stickers. It commits past 110px or on a quick flick, and otherwise snaps back. There are also **buttons** (✕ / ♥) and **← / → keys**.
 - **Optimistic animation, without lying.** The card flies out while the request runs. If the server fails, it springs back with a **Retry** and nothing is lost. A single-flight guard means double taps, double drags or key repeats send exactly one request.
-- Empty state ("You're all caught up"), plus loading skeletons and error states with retry.
+- Empty states for "You're all caught up" and "No one fits your filters" (with Widen filters), plus loading skeletons and error states with retry.
 
-**Matching**
-- An "It's a match!" overlay appears **only** when `POST /swipe` returns `matched: true`. The client never infers a match.
-- A **Matches** view (inside Discover, with a count badge) lists mutual matches only.
+**Matching and chat**
+- An "It's a match!" overlay appears **only** when `POST /swipe` returns `matched: true`. It shows what you both like and goes straight to **Send a message**.
+- **Matches inbox:**
+  - A "New matches · say hi" row.
+  - Conversations sorted by latest activity, each with a last-message preview and a **Your turn** marker.
+- **Chat:**
+  - Only the two matched people can read or post (anyone else gets a 404).
+  - **Conversation starters** are built from shared interests and their prompt.
+  - A typing indicator shows while a reply is on its way, and failed sends get "tap to retry".
+  - A safety reminder ("Never share OTPs…") sits above the messages.
+- **Safety:** **Unmatch** deletes the chat for both people, and **Report** (with a reason) also unmatches. Both are confirmed in in-app sheets, never browser pop-ups.
+- *Demo note:* seeded profiles reply on their own a couple of seconds after you message, so the chat feels alive. Replies are stored with a future `deliver_at`, which works on serverless without background jobs.
+
+**Feature research: what I added, and what I deliberately didn't**
+
+I looked at what Tinder, Bumble and Hinge ship today (prompts, verification, shared-interest openers, distance, filters, safety tools) and kept only what fits Coy's promise: *nobody learns you like them unless it's mutual.*
+
+| Feature (seen in) | Decision | Why |
+|---|---|---|
+| Shared interests and interest-based openers (Bumble Opening Moves / interest badges) | ✅ Added | It's the strongest reason to start a chat, and it's computed from public data only. |
+| Prompts on profiles (Hinge, Tinder's profile revamp) | ✅ Added | Gives people something real to reply to. It feeds the conversation starters. |
+| Photo-verified badge (Hinge Face Check, Tinder) | ✅ Added (seeded flag) | Trust signal. Real verification would be a selfie check. |
+| Distance | ✅ Added, **banded** | Exact distances allow triangulation, so the server only returns rounded bands and filters on the band. |
+| Distance and age filters | ✅ Added | A standard expectation. The empty state nudges people to widen filters, as Hinge does. |
+| Chat, unmatch, report | ✅ Added | Matches need somewhere to go, and safety tools are a baseline requirement. |
+| Super Like | ❌ Rejected | It tells someone you like them **before** it's mutual, which is exactly what Coy promises never to do. |
+| "Likes You" grid (Tinder Gold, Bumble Beeline) | ❌ Rejected | It reveals one-sided interest. This is the core privacy line. |
+| Undo / rewind | ❌ Rejected | Rewinding a PASS on someone who liked you could be used to probe who liked you. |
+| "Active now" or last-seen status | ❌ Rejected | It leaks activity patterns. Not worth it for a crush app. |
+| Read receipts | ❌ Skipped | Pressure without much value. Could be opt-in later. |
 
 **Design: reverse-engineered from Coy's live app**
 
@@ -93,6 +125,20 @@ Request body: `{ "profileId": "p31", "action": "LIKE" | "PASS" }`
 
 Errors are always shaped `{ "error": { "code", "message" } }`.
 
+### `GET /me`
+The logged-in user's own name, area and interests (used by the filters sheet).
+
+### `GET /feed?minAge=&maxAge=&maxKm=` (filters optional)
+Each profile also carries `verified`, `prompt`, a coarse `distanceKm` band (0 = under 1 km) and `sharedInterests`. Coordinates are never returned.
+
+### Chat
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/matches/:id/messages` | `{ match, messages[], typing, starters[] }`. Members only, 404 otherwise |
+| `POST /api/matches/:id/messages` | `{ body }` (1–500 chars) returns `201 { message }` |
+| `DELETE /api/matches/:id` | Unmatch: deletes the match and its chat. The swipe stays, so they never reappear |
+| `POST /api/matches/:id/report` | `{ reason }` records a report and unmatches |
+
 ### `GET /matches`
 ```json
 { "matches": [ { "id": "match_…", "createdAt": "2026-11-17T18:20:01.123Z",
@@ -130,12 +176,16 @@ tests/{unit,integration,e2e}/
 ## Data model
 
 ```sql
-users   (id PK, name, age, photo_url, bio, city, college, interests JSON, created_at)
+users   (id PK, name, age, photo_url, bio, city, college, interests JSON,
+         prompt_question, prompt_answer, verified, lat, lng /* private */, created_at)
 swipes  (id PK, swiper_id → users, target_id → users, action, created_at,
          UNIQUE(swiper_id, target_id),
          CHECK(action IN ('LIKE','PASS')), CHECK(swiper_id <> target_id))
 matches (id PK, user_a_id → users, user_b_id → users, created_at,
          UNIQUE(user_a_id, user_b_id), CHECK(user_a_id < user_b_id))
+messages(id PK, match_id → matches, sender_id → users, body CHECK(1..1000 chars),
+         created_at, deliver_at)          -- visible only once deliver_at <= now
+reports (id PK, reporter_id → users, reported_id → users, reason, created_at)
 ```
 
 - The logged-in user (`me`) is a normal row in `users`. It is excluded from the feed.
@@ -169,6 +219,8 @@ matches (id PK, user_a_id → users, user_b_id → users, created_at,
 | Error messages as a side channel | 409/404 messages are generic; a test asserts identical bytes. 500s hide internals. Logs record only error messages, never request bodies. |
 | Client claiming a match | Zod `.strict()` rejects unknown fields like `matched`, and matching is decided entirely in SQL. |
 | A "N people liked you" counter | Deliberately not built: in a small pool, a counter plus swiping can leak identities. |
+| **Location triangulation** | `lat`/`lng` never leave the server. Distance is a rounded band (whole km under 10, nearest 5 under 50, and so on), and the distance filter also compares bands, so binary-searching `maxKm` can't recover an exact distance. A test scans the payload for coordinates. |
+| Reading someone else's chat | Every chat query is scoped to "a match I'm a member of". Unknown, other people's and unmatched ids all return the same 404. |
 
 ---
 

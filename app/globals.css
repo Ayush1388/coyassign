@@ -225,6 +225,13 @@ body {
   border: var(--bw) solid var(--line);
 }
 
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @utility focus-ring {
   &:focus-visible {
     outline: 3px solid var(--accent-strong);

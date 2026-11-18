@@ -1,10 +1,11 @@
 "use client";
 
-import { Heart, Lock } from "lucide-react";
+import { Heart, Lock, MessageCircle } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import type { MatchDTO } from "@/lib/api";
+import { listInterests } from "@/lib/format";
 import { Photo } from "@/components/ui/photo";
 
 const BURST = Array.from({ length: 14 }, (_, i) => {
@@ -19,7 +20,7 @@ const BURST = Array.from({ length: 14 }, (_, i) => {
  */
 export function MatchOverlay({ match, onClose }: { match: MatchDTO; onClose: () => void }) {
   const reduce = useReducedMotion();
-  const primary = useRef<HTMLButtonElement>(null);
+  const primary = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
     primary.current?.focus();
@@ -100,13 +101,25 @@ export function MatchOverlay({ match, onClose }: { match: MatchDTO; onClose: () 
           you know.
         </p>
 
+        {match.sharedInterests.length > 0 && (
+          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border-(length:--bw) border-line bg-surface px-3 py-1 text-[14px] font-bold">
+            <Heart className="size-3.5 fill-accent text-ink" aria-hidden />
+            You both like {listInterests(match.sharedInterests)}
+          </p>
+        )}
+
         <div className="mt-6 flex flex-col gap-3">
-          <button ref={primary} type="button" onClick={onClose} className="btn-primary pressable focus-ring w-full">
+          <Link
+            ref={primary}
+            href={`/discover/matches/${match.id}`}
+            className="btn-primary pressable focus-ring w-full"
+            data-testid="send-message"
+          >
+            <MessageCircle className="size-5" aria-hidden /> Send a message
+          </Link>
+          <button type="button" onClick={onClose} className="btn-secondary pressable focus-ring w-full">
             Keep swiping
           </button>
-          <Link href="/discover/matches" className="btn-secondary pressable focus-ring w-full">
-            See matches
-          </Link>
         </div>
       </motion.div>
     </motion.div>
