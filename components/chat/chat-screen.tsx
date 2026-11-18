@@ -150,7 +150,7 @@ export function ChatScreen({ matchId }: { matchId: string }) {
       <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto bg-soft px-3.5 py-4" data-testid="chat-log">
         {convo && p && (
           <div className="mx-auto mb-5 max-w-[360px] rounded-[24px] bg-surface p-4 text-center shadow-[0_8px_24px_-14px_rgba(21,18,29,0.35)]">
-            <div className="mx-auto flex w-fit -space-x-3">
+            <div className="mx-auto flex w-fit -space-x-2">
               <span className="relative flex size-14 items-center justify-center rounded-full bg-accent-strong text-[15px] font-extrabold text-white ring-4 ring-surface">
                 You
               </span>

@@ -45,6 +45,9 @@ test("tab bar navigates between Home and Discover", async ({ page }) => {
   await page.getByRole("link", { name: "Home" }).click();
   await expect(page).toHaveURL(/\/home$/);
   await expect(topCard(page)).toHaveCount(0);
+  // The brief says Home stays blank: nothing to click or look at in the page body.
+  await expect(page.getByRole("main").locator("button, a, img, input")).toHaveCount(0);
+  await expect(page.getByRole("main")).toHaveText("Home");
   await page.getByRole("link", { name: "Discover" }).click();
   await expect(page.getByRole("heading", { name: /Meet interesting people/i })).toBeVisible();
   // Section tabs inside Discover

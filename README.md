@@ -107,18 +107,21 @@ I looked at what Tinder, Bumble and Hinge ship today (prompts, verification, sha
 | "Active now" or last-seen status | ❌ Rejected | It leaks activity patterns. Not worth it for a crush app. |
 | Read receipts | ✅ Added | ✓ delivered, blue ✓✓ seen, and "Seen" under your last message. They apply between mutual matches only, so they never reveal one-sided interest. |
 
-**Design: reverse-engineered from Coy's live app**
+**Design: based on Coy's live app, then adjusted**
 
-The UI was rebuilt from Coy's own design tokens, not from guesses. **[docs/design-notes.md](docs/design-notes.md)** is a "design DNA" extracted from app.getcoy.com: its CSS variables, type scale and computed styles, plus four evidence-backed taste principles. The app applies those principles directly:
+The look started from Coy's own design tokens, not from guesses. **[docs/design-notes.md](docs/design-notes.md)** is a "design DNA" extracted from app.getcoy.com (its CSS variables, type scale, computed styles and four taste principles). Discover is a sibling of Coy's look rather than a copy of it:
 
-| Coy principle (from the extraction) | How Discover applies it |
+| From Coy's app | In Discover |
 |---|---|
-| **Sticker physics:** a `2px #15121D` edge and a hard `3px 3px 0` pop, no blur | Cards, CTAs and even the LIKE/PASS stamps are stickers. Presses sink into the shadow in 80ms, Coy's own timing. Utility buttons (Matches, style switch) stay flat soft circles like Coy's settings gear, because pop is reserved for primary actions. |
-| **One voice:** Bricolage Grotesque for every role, hierarchy by weight (800/700/600/400) | A single font family. Headlines use 800 weight with −0.035em tracking, and body text uses 400. |
-| **Surface colour names the moment** | Yellow `#FFE45C` is used only for the match ("news about you", like Coy's "Someone has a crush on you" card). Lilac `#E7E0FF` marks status and empty states. Mint `#CBF4E0` marks matches as the reward. Profile cards stay white, because the photo is the colour. |
-| **Phone-shaped even on a monitor** | A 480px centred column with a 20px gutter at every viewport. |
+| **One voice:** Bricolage Grotesque for every role, hierarchy by weight | Kept. A single font family, 800 for headlines (−0.035em tracking) and 400 for body text. |
+| **Phone-shaped even on a monitor** | Kept. A 480px centred column at every viewport. |
+| Pink `#FF3D81` accent and the wordmark with a pink dot | Kept for the Like button, icons and hearts. |
+| Lilac `#E7E0FF` as the "status" surface | Kept for empty and error states. |
+| **Sticker physics:** a 2px ink edge and a hard `3px 3px 0` shadow | Kept only on the swipe card and the LIKE/PASS stamps. Everything else uses soft shadows and no outlines. |
+| Dark ink label on bright pink buttons | **Changed.** Filled pink surfaces use a deeper pink (`#D81E63`) with a **white** label (4.9:1 contrast), because dark text on pink was hard to read. |
+| Yellow and mint card surfaces | **Not used.** The match pop-up is a plain dark card with white text. |
 
-Coy's CTA puts an **ink label on pink** (`#15121D` on `#FF3D81`, about 6:1 contrast). Discover keeps that rather than the common white-on-pink (about 3.4:1, which fails WCAG AA).
+Coy's own screens (login, extra slots) use black outlines and dark-on-pink buttons, so Discover intentionally looks calmer than they do.
 
 **Two styles (switch in the header)**
 - **Coy** (default) uses the tokens above.
@@ -291,5 +294,5 @@ A SQLite *file* doesn't persist on serverless hosts, so the hosted demo uses Tur
 - Seeded profiles never swipe "live": incoming interest is fixed seed data.
 - The feed returns the whole remaining pool. A real product would paginate and rank the feed (with the same "no incoming-like signal" rule).
 - There is no undo or rewind. That is deliberate, because rewinding a PASS on someone who liked you needs careful privacy semantics.
-- Photos are placeholders from pravatar.cc (Unsplash-licensed), bundled locally so the demo never shows broken images. An initials fallback covers load failures.
+- Photos are placeholders (portraits from pravatar.cc, scenery from picsum.photos), bundled locally so the demo never shows broken images. Replace them before any real use. An initials fallback covers load failures.
 - This is not production-hardened: there is no auth, rate limiting or moderation.

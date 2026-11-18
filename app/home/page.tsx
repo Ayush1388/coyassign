@@ -1,13 +1,7 @@
-import { AppHeader } from "@/components/nav/app-header";
-
-/** Placeholder for Coy's existing experience. Intentionally blank, per the brief. */
+/**
+ * The brief says to keep Home blank: it stands in for Coy's existing experience, which
+ * lives in the real app. The heading is visually hidden so screen readers still know where they are.
+ */
 export default function HomePage() {
-  return (
-    <>
-      <AppHeader />
-      <section aria-label="Home" className="flex flex-1 items-center justify-center px-6 text-center">
-        <p className="text-sm text-muted">Home: Coy&apos;s existing experience lives here.</p>
-      </section>
-    </>
-  );
+  return <h1 className="sr-only">Home</h1>;
 }
