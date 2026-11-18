@@ -30,13 +30,13 @@ const swipe = (body: unknown) =>
       body: typeof body === "string" ? body : JSON.stringify(body),
     }),
   );
-const feed = async () => (await (await getFeedRoute()).json()) as { profiles: { id: string }[] };
+const feed = async () => (await (await getFeedRoute(new Request("http://test/api/feed"))).json()) as { profiles: { id: string }[] };
 const matches = async () =>
   (await (await getMatchesRoute()).json()) as { matches: { id: string; profile: { id: string } }[] };
 
 describe("GET /api/feed", () => {
   it("returns all unswiped profiles with the public fields", async () => {
-    const res = await getFeedRoute();
+    const res = await getFeedRoute(new Request("http://test/api/feed"));
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toBe("no-store");
     const body = (await res.json()) as { profiles: Record<string, unknown>[] };

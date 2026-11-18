@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { check, index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 /**
  * Everyone on the platform, including the logged-in user ("me").
@@ -15,6 +15,18 @@ export const users = sqliteTable("users", {
   city: text("city").notNull(),
   college: text("college"),
   interests: text("interests", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
+  /** Hinge-style prompt shown on the profile sheet. */
+  promptQuestion: text("prompt_question"),
+  promptAnswer: text("prompt_answer"),
+  /** Photo-verified badge (public). */
+  verified: integer("verified", { mode: "boolean" }).notNull().default(false),
+  /**
+   * PRIVATE. Used only to compute a coarse distance on the server. Coordinates are
+   * never serialised: responses carry a rounded distance band, so the client
+   * can't triangulate anyone.
+   */
+  lat: real("lat"),
+  lng: real("lng"),
   createdAt: text("created_at").notNull().default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ','now'))`),
 });
 
@@ -59,4 +71,35 @@ export const matches = sqliteTable(
   ],
 );
 
+/**
+ * Chat messages between matched users. Deleted with the match (unmatch removes the
+ * whole conversation). `deliver_at` lets the demo's seeded profiles "reply" a few
+ * seconds later without background jobs: a message is only visible once deliver_at <= now.
+ */
+export const messages = sqliteTable(
+  "messages",
+  {
+    id: text("id").primaryKey(),
+    matchId: text("match_id").notNull().references(() => matches.id, { onDelete: "cascade" }),
+    senderId: text("sender_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    createdAt: text("created_at").notNull(),
+    deliverAt: text("deliver_at").notNull(),
+  },
+  (t) => [
+    index("messages_match_deliver_idx").on(t.matchId, t.deliverAt),
+    check("messages_body_len_ck", sql`length(${t.body}) BETWEEN 1 AND 1000`),
+  ],
+);
+
+/** Safety reports. Reporting also unmatches. */
+export const reports = sqliteTable("reports", {
+  id: text("id").primaryKey(),
+  reporterId: text("reporter_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  reportedId: text("reported_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  reason: text("reason").notNull(),
+  createdAt: text("created_at").notNull().default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ','now'))`),
+});
+
 export type UserRow = typeof users.$inferSelect;
+export type MessageRow = typeof messages.$inferSelect;

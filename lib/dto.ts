@@ -1,9 +1,10 @@
 import type { UserRow } from "./db/schema";
+import { bandBetween, sharedInterests } from "./geo";
 
 /**
  * PRIVACY BOUNDARY. Every profile that leaves the server goes through one of
  * these explicit allow-lists. We never spread DB rows into responses, so a
- * column added later cannot leak by accident.
+ * column added later (like lat/lng) can't leak by accident.
  */
 export type PublicProfile = {
   id: string;
@@ -14,13 +15,33 @@ export type PublicProfile = {
   city: string;
   college: string | null;
   interests: string[];
+  verified: boolean;
+  prompt: { question: string; answer: string } | null;
+  /** Coarse distance band in km (0 = under 1 km), never an exact value. */
+  distanceKm: number | null;
+  /** Interests the viewer also listed. Derived from public data only. */
+  sharedInterests: string[];
 };
 
-export type MatchProfile = Pick<PublicProfile, "id" | "name" | "age" | "photoUrl" | "city" | "college">;
+export type MatchProfile = Pick<PublicProfile, "id" | "name" | "age" | "photoUrl" | "city" | "college" | "verified">;
 
-export type MatchDTO = { id: string; createdAt: string; profile: MatchProfile };
+export type LastMessage = { body: string; fromMe: boolean; createdAt: string };
 
-export function toPublicProfile(u: UserRow): PublicProfile {
+export type MatchDTO = {
+  id: string;
+  createdAt: string;
+  profile: MatchProfile;
+  sharedInterests: string[];
+  lastMessage: LastMessage | null;
+  /** True when the other person spoke last, or nobody has spoken yet. */
+  yourTurn: boolean;
+};
+
+export type MessageDTO = { id: string; body: string; fromMe: boolean; createdAt: string };
+
+const interestsOf = (u: UserRow) => (Array.isArray(u.interests) ? u.interests : []);
+
+export function toPublicProfile(u: UserRow, viewer: UserRow): PublicProfile {
   return {
     id: u.id,
     name: u.name,
@@ -29,10 +50,26 @@ export function toPublicProfile(u: UserRow): PublicProfile {
     bio: u.bio,
     city: u.city,
     college: u.college,
-    interests: Array.isArray(u.interests) ? u.interests : [],
+    interests: interestsOf(u),
+    verified: u.verified,
+    prompt: u.promptQuestion && u.promptAnswer ? { question: u.promptQuestion, answer: u.promptAnswer } : null,
+    distanceKm: bandBetween(viewer, u),
+    sharedInterests: sharedInterests(interestsOf(viewer), interestsOf(u)),
   };
 }
 
 export function toMatchProfile(u: UserRow): MatchProfile {
-  return { id: u.id, name: u.name, age: u.age, photoUrl: u.photoUrl, city: u.city, college: u.college };
+  return {
+    id: u.id,
+    name: u.name,
+    age: u.age,
+    photoUrl: u.photoUrl,
+    city: u.city,
+    college: u.college,
+    verified: u.verified,
+  };
+}
+
+export function sharedWith(viewer: UserRow, other: UserRow) {
+  return sharedInterests(interestsOf(viewer), interestsOf(other));
 }

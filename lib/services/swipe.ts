@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import type { DB } from "../db/client";
 import { matches, swipes, users } from "../db/schema";
-import { toMatchProfile, type MatchProfile } from "../dto";
+import { sharedWith, toMatchProfile, type MatchDTO } from "../dto";
+import { getViewer } from "./feed";
 import type { SwipeInput } from "../validation";
 
 export type SwipeErrorCode = "NOT_FOUND" | "ALREADY_SWIPED";
@@ -15,7 +16,7 @@ export class SwipeError extends Error {
 
 export type SwipeResult =
   | { success: true; matched: false; match: null }
-  | { success: true; matched: true; match: { id: string; createdAt: string; profile: MatchProfile } };
+  | { success: true; matched: true; match: MatchDTO };
 
 /**
  * Records a LIKE or PASS and creates a match only if both sides have LIKEd.
@@ -65,9 +66,17 @@ export async function recordSwipe(db: DB, userId: string, input: SwipeInput): Pr
   const match = createdMatch[0];
   if (!match) return { success: true, matched: false, match: null };
 
+  const viewer = await getViewer(db, userId);
   return {
     success: true,
     matched: true,
-    match: { id: match.id, createdAt: match.created_at, profile: toMatchProfile(target) },
+    match: {
+      id: match.id,
+      createdAt: match.created_at,
+      profile: toMatchProfile(target),
+      sharedInterests: sharedWith(viewer, target),
+      lastMessage: null,
+      yourTurn: true,
+    },
   };
 }

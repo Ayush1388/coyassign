@@ -10,8 +10,9 @@ import { CURRENT_USER_ID as ME } from "@/lib/auth";
 import { getFeed } from "@/lib/services/feed";
 import { LIKERS, makeTestDb, NON_LIKERS, type TestDb } from "../helpers";
 
-const FEED_KEYS = ["age", "bio", "city", "college", "id", "interests", "name", "photoUrl"];
-const MATCH_PROFILE_KEYS = ["age", "city", "college", "id", "name", "photoUrl"];
+const FEED_KEYS = ["age", "bio", "city", "college", "distanceKm", "id", "interests", "name", "photoUrl", "prompt", "sharedInterests", "verified"];
+const MATCH_PROFILE_KEYS = ["age", "city", "college", "id", "name", "photoUrl", "verified"];
+const LOCATION_KEY = /^(lat|lng|lon|latitude|longitude|coords?|location|geo)$/i;
 const FORBIDDEN = /lik(ed|es)(you|me|currentuser)|incoming|admirer|crush|swipe|action|score/i;
 
 let t: TestDb;
@@ -51,14 +52,28 @@ function allKeys(value: unknown, out = new Set<string>()): Set<string> {
 
 describe("privacy: incoming likes are never disclosed", () => {
   it("feed profiles expose only allow-listed fields, with nothing about who liked whom", async () => {
-    const raw = await (await getFeedRoute()).text();
+    const raw = await (await getFeedRoute(new Request("http://test/api/feed"))).text();
     const body = JSON.parse(raw) as { profiles: Record<string, unknown>[] };
     for (const p of body.profiles) expect(Object.keys(p).sort()).toEqual(FEED_KEYS);
     expect([...allKeys(body)].filter((k) => FORBIDDEN.test(k))).toEqual([]);
+    expect([...allKeys(body)].filter((k) => LOCATION_KEY.test(k))).toEqual([]);
+  });
+
+  it("feed exposes only coarse distance bands, never exact coordinates or distances", async () => {
+    const raw = await (await getFeedRoute(new Request("http://test/api/feed"))).text();
+    expect(raw).not.toMatch(/28\.\d{3}|77\.\d{3}/); // no Delhi-ish coordinates anywhere in the payload
+    const body = JSON.parse(raw) as { profiles: { distanceKm: number | null }[] };
+    for (const { distanceKm: d } of body.profiles) {
+      expect(d).not.toBeNull();
+      expect(Number.isInteger(d)).toBe(true);
+      if (d! >= 10 && d! < 50) expect(d! % 5).toBe(0);
+      if (d! >= 50 && d! < 200) expect(d! % 10).toBe(0);
+      if (d! >= 200) expect(d! % 50).toBe(0);
+    }
   });
 
   it("feed payload for a liker is shaped exactly like a non-liker", async () => {
-    const body = JSON.parse(await (await getFeedRoute()).text()) as { profiles: Record<string, unknown>[] };
+    const body = JSON.parse(await (await getFeedRoute(new Request("http://test/api/feed"))).text()) as { profiles: Record<string, unknown>[] };
     const liker = body.profiles.find((p) => p.id === LIKERS[0])!;
     const nonLiker = body.profiles.find((p) => p.id === NON_LIKERS[0])!;
     expect(Object.keys(liker)).toEqual(Object.keys(nonLiker));
