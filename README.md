@@ -41,7 +41,7 @@ Every requirement from the brief, where it is implemented, and how it is verifie
 | A Matches view listing all mutual matches | ✅ | `app/discover/matches`, reads only the `matches` table |
 | Never reveal who liked the user unless mutual | ✅ | See [Security and privacy](#security-and-privacy). Release-blocking payload tests. |
 | **4. APIs:** `GET /feed`, `POST /swipe`, `GET /matches` | ✅ | `app/api/{feed,swipe,matches}`. Also served at the exact paths from the brief via rewrites. |
-| Swipes and matches persist across reloads | ✅ | SQLite on disk. Tests reopen a fresh connection and re-read the data. On the Vercel demo this holds while the server instance is warm (see [Deployment](#deployment)). |
+| Swipes and matches persist across reloads | ✅ | SQLite on disk. Tests reopen a fresh connection and re-read the data. |
 | "Privacy edge cases" (overview) | ✅ | [Security and privacy](#security-and-privacy) |
 | "Clean, tested backend logic" (overview) | ✅ | Business logic lives in `lib/services/*`, separate from HTTP. 85 unit and integration tests plus 50 browser tests, run in CI. |
 
@@ -296,22 +296,23 @@ Pink surfaces set a solid background colour first and layer any gradient on top,
 
 ## Deployment
 
-Deployed on Vercel from this repository; every push to `main` deploys.
+**The supported way to run this is locally** (see [Getting started](#getting-started)): one command, no accounts, no keys.
 
-**How the database works on Vercel.** Vercel's filesystem is read-only except a temp folder, so it cannot keep a SQLite file permanently. Instead, the build (`vercel-build`) migrates and seeds a SQLite database into the deployment (`data/coy.db`, shipped with the API routes through `outputFileTracingIncludes`). On first use, each server copies it to its temp folder and opens that copy (`prepareRuntimeUrl` in `lib/db/client.ts`, unit-tested).
+To host it, the app needs a database that every server instance can see:
 
-- Swipes, matches and chats persist across page reloads for as long as that server instance stays warm.
-- The demo starts fresh when Vercel recycles the instance. **Reset demo** replays it at any time.
-- To keep data permanently, set `DATABASE_URL` (and `DATABASE_AUTH_TOKEN`) to a hosted libSQL database such as Turso. It is the same SQLite engine and the same code, with no changes needed.
+- **A host with a persistent disk** (Render, Fly.io, Railway or a VPS): `pnpm build && pnpm start` with the default `file:./data/coy.db`. Nothing else to configure.
+- **Serverless (Vercel):** a SQLite *file* can't be shared between instances, so point `DATABASE_URL` and `DATABASE_AUTH_TOKEN` at a hosted libSQL database such as Turso. It is the same SQLite engine and the same code. The `vercel-build` script migrates and seeds that database during the build.
 
-Set `DEMO_RESET=true` to show the **Reset demo** button on the empty state.
+Optional: `DEMO_RESET=true` shows the **Reset demo** button on the empty state.
+
+Without a shared database, `lib/db/client.ts` falls back to copying a seeded file into the temp folder (`prepareRuntimeUrl`, unit-tested). That is only good enough for a single-instance demo: concurrent requests can land on different instances, and each has its own copy.
 
 ---
 
 ## Limitations and next steps
 
 - **Single user by design.** A hosted demo is one shared account; use **Reset demo** to replay it.
-- **The Vercel demo database is per server instance** (see [Deployment](#deployment)), so it resets when the instance is recycled.
+- **Hosting needs a shared database** (see [Deployment](#deployment)); the file-based default is meant for local use or a single server with a disk.
 - Seeded profiles never swipe "live": their interest in you is fixed seed data, and their chat replies are canned.
 - The feed returns the whole remaining pool. A real product would paginate and rank it, with the same "no incoming-like signal" rule.
 - No authentication, rate limiting or moderation (see [Security and privacy](#7-out-of-scope-for-this-assignment)).
